@@ -11,7 +11,7 @@ from evennia import CmdSet, InterruptCommand
 from evennia.utils.evmenu import EvMenu
 from evennia.utils.utils import inherits_from
 
-from typeclasses.npcs import TalkativeNPC
+from typeclasses.npcs import TalkativeNPC, InsultNPC
 
 # TODO: properly implement real-time combat
 # from world.combat_turnbased import CombatFailure, join_combat
@@ -65,6 +65,47 @@ class CmdAttackTurnBased(Command):
         else:
             self.caller.msg("|rFound noone to attack.|n")
 
+_CHAR_SHEET = """
+|w{name} the {gender} {race} {cclass}|n
+
+STR +{strength}
+CUN +{cunning}
+WIL +{will}
+
+{description}
+
+Current stats:
+    Health: {hurt_level}
+    Mana: {mana_level}
+    Stamina {stamina_level}
+"""
+
+class CmdCharSheet(Command):
+    """View your character sheet
+
+    Usage: charsheet
+
+    """
+
+    key = "charsheet"
+    aliases = ("c", "cs", "char")
+
+    def func(self):
+        self.caller.msg(
+            _CHAR_SHEET.format(
+                name=self.caller.name,
+                gender=self.caller.gender,
+                strength=self.caller.strength,
+                cunning=self.caller.cunning,
+                will=self.caller.will,
+                race=self.caller.race,
+                cclass=self.caller.cclass,
+                hurt_level=self.caller.hurt_level,
+                mana_level=self.caller.mana_level,
+                stamina_level=self.caller.stamina_level,
+                description=self.caller.db.desc
+            )
+        )
 
 class CmdInventory(Command):
     """
@@ -385,9 +426,17 @@ class CmdGive(Command):
 
         # this starts evmenus for both parties
         EvMenu(
-            receiver, {"node_receive": node_receive, "node_end": node_end}, item=item, giver=caller
+            receiver,
+            {"node_receive": node_receive, "node_end": node_end},
+            startnode="node_receive",
+            startnode_input=("", {"item": item, "giver": caller})
         )
-        EvMenu(caller, {"node_give": node_give, "node_end": node_end}, item=item, receiver=receiver)
+        EvMenu(
+            caller,
+            {"node_give": node_give, "node_end": node_end},
+            startnode="node_give",
+            startnode_input=("", {"item": item, "receiver": receiver})
+        )
 
 
 class CmdTalk(Command):
@@ -406,7 +455,7 @@ class CmdTalk(Command):
         if not target:
             return
 
-        if not inherits_from(target, TalkativeNPC):
+        if not inherits_from(target, TalkativeNPC) and not inherits_from(target, InsultNPC):
             self.caller.msg(
                 f"{target.get_display_name(looker=self.caller)} does not seem very talkative."
             )
@@ -424,6 +473,7 @@ class AinneveCmdSet(CmdSet):
 
     def at_cmdset_creation(self):
 #        self.add(CmdAttackTurnBased())
+        self.add(CmdCharSheet())
         self.add(CmdInventory())
         self.add(CmdWieldOrWear())
         self.add(CmdRemove())

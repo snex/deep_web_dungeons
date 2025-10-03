@@ -1,4 +1,5 @@
 from evennia.commands.default.general import CmdLook as _CmdLook
+from .game import CmdCharSheet
 
 
 class CmdLook(_CmdLook):

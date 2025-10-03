@@ -1,0 +1,13 @@
+bus
+church
+city
+housing project
+monastary
+mosque
+orphanage
+planet
+room
+school
+synagogue
+town
+trailer park

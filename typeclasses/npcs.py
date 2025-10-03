@@ -2,18 +2,22 @@
 Typeclasses defining NPCs. This includes both friends and enemies, only separated by their AI.
 
 """
-from random import choice
+from random import choice, random, randrange
 
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.evmenu import EvMenu
-from evennia.utils.utils import make_iter
+from evennia.utils.utils import inherits_from, make_iter, repeat, unrepeat
+from world.combat import CombatHandler
+from world.common.dialog.insults import Insult
 from world.enums import Ability
-from .characters import BaseCharacter
+from .characters import BaseCharacter, Character
 
+import subprocess
 
 class NPC(BaseCharacter):
     is_pc = False
 
+    desc = AttributeProperty(default="This is a character.", autocreate=False)
     armor = AttributeProperty(default=1, autocreate=False)  # +10 to get armor defense
     morale = AttributeProperty(default=9, autocreate=False)
     allegiance = AttributeProperty(default=Ability.ALLEGIANCE_HOSTILE, autocreate=False)
@@ -40,6 +44,80 @@ class NPC(BaseCharacter):
         """
         pass
 
+    def _do_wander(self, allowed_directions):
+        candidates = [direction.key for direction in self.location.exits if direction.key in allowed_directions]
+        wander_dir = choice(candidates)
+        self.execute_cmd(wander_dir)
+
+class WanderingNPC(NPC):
+    """
+    Wandering NPCs will wander around randomly."
+    """
+
+    _ALLOWED_DIRECTIONS = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest']
+
+    wander_timer = AttributeProperty(default=None, autocreate=False)
+    wander_rate = AttributeProperty(randrange(30, 120), autocreate=False)
+    wander_chance = AttributeProperty(randrange(300, 700) / 1000, autocreate=False)
+
+    def at_object_creation(self):
+        self.wander_timer = repeat(self.wander_rate, self.wander)
+
+    def at_object_delete(self):
+        if self.wander_timer is not None:
+            unrepeat(self.wander_timer)
+        return True
+
+    def wander(self):
+        if random() < self.wander_chance:
+            self._do_wander(self._ALLOWED_DIRECTIONS)
+
+class InsultNPC(NPC):
+    """
+    Insult NPCs will wander around and insult any players they see.
+    """
+
+    _ALLOWED_DIRECTIONS = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest']
+
+    insult_timer = AttributeProperty(default=None, autocreate=False)
+    insult_rate = AttributeProperty(randrange(30, 120), autocreate=False)
+    insult_chance = AttributeProperty(randrange(300, 700) / 1000, autocreate=False)
+
+    def at_object_creation(self):
+        self.insult_timer = repeat(self.insult_rate, self.insult)
+
+    def at_object_delete(self):
+        if self.insult_timer is not None:
+            unrepeat(self.insult_timer)
+        return True
+
+    def _say_insult(self, target):
+        insult = Insult(target.key, target.gender).generate_insult()
+        self.execute_cmd(f"say |w{insult}|n")
+        self._do_wander(self._ALLOWED_DIRECTIONS)
+
+    def at_talk(self, talker):
+        pcs = [obj for obj in self.location.contents if inherits_from(obj, Character)]
+        self._say_insult(talker)
+
+    def at_damage(self, damage, attacker=None):
+        """
+        Insult NPCs are generally immortal and will insult and run if hit."
+
+        """
+
+        if self.combat:
+            self.combat.end_combat()
+        attacker.msg(f"{self.key} swiftly dodges your attack.")
+        self._say_insult(attacker)
+
+    def insult(self):
+        if random() < self.insult_chance:
+            pcs = [obj for obj in self.location.contents if inherits_from(obj, Character)]
+            if pcs:
+                target = choice(pcs)
+                self._say_insult(target)
+
 
 class TalkativeNPC(NPC):
     """
@@ -61,6 +139,8 @@ class TalkativeNPC(NPC):
 
         """
         attacker.msg(f'{self.key} dodges the damage and shouts "|wHey! What are you doing?|n"')
+        if self.combat:
+            self.combat.end_combat()
 
     @classmethod
     def create(cls, key, account=None, **kwargs):
@@ -115,8 +195,10 @@ class TalkativeNPC(NPC):
             `**kwargs` of the start node.
 
         """
-        menu_kwargs = {**self.menu_kwargs, **kwargs}
-        EvMenu(talker, self.menudata, startnode=startnode, session=session, npc=self, **menu_kwargs)
+        talker.msg("He has nothing to say.")
+        # make this work!
+        # menu_kwargs = {**self.menu_kwargs, **kwargs}
+        # EvMenu(talker, self.menudata, startnode=startnode, session=session, npc=self, **menu_kwargs)
 
 
 def node_start(caller, raw_string, **kwargs):
@@ -175,3 +257,5 @@ class ShopKeeper(TalkativeNPC):
             f"{self.key} brushes off the hit and shouts "
             '"|wHey! This is not the way to get a discount!|n"'
         )
+        if self.combat:
+            self.combat.end_combat()

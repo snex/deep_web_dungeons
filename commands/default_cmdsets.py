@@ -21,6 +21,7 @@ from .debug import DebugCmdSet
 from .game import AinneveCmdSet
 from .look import CmdLook
 from .ooc import CmdCharCreate
+from .prefs import CmdPrefs
 from .combat import CombatCmdSet
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
@@ -52,7 +53,7 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
     commands, etc.
     """
 
-    key = "DefaultAccount"
+    key = "DeepWebAccount"
 
     def at_cmdset_creation(self):
         """
@@ -60,6 +61,7 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         """
         super().at_cmdset_creation()
         self.add(CmdCharCreate()) # Override default creation
+        self.add(CmdPrefs())
 
 
 class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
