@@ -27,7 +27,7 @@ Value: ~|y0|n coins
 A test object
 
 Slots: |w1|n, Used from: |wbackpack|n
-Quality: |wN/A|n, Uses: |wuses|n
+Quality: |wN/A|n, Uses: |wN/A|n
 Attacks using |wNo attack|n against |wNo defense|n
 Damage roll: |wNone|n
 """.strip(),
