@@ -187,21 +187,21 @@ class EquipmentHandler:
 
         two_hands = slots[WieldLocation.TWO_HANDS]
         if two_hands:
-            weapon_str = f"You wield {two_hands} with both hands"
-            shield_str = " (you can't hold a shield at the same time)."
+            weapon_str = f"You wield {two_hands} with both hands."
+            shield_str = ""
         else:
             one_hands = slots[WieldLocation.WEAPON_HAND]
             if one_hands:
                 weapon_str = f"You are wielding {one_hands} in one hand."
             shield = slots[WieldLocation.SHIELD_HAND]
             if shield:
-                shield_str = f"You have {shield} in your off hand."
+                shield_str = f" You have {shield} in your off hand."
 
         armor = slots[WieldLocation.BODY]
         if armor:
             armor_str = f"You are wearing {armor}"
 
-        helmet = slots[WieldLocation.BODY]
+        helmet = slots[WieldLocation.HEAD]
         if helmet:
             helmet_str = f" and {helmet} on your head."
 

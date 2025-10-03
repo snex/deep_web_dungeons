@@ -98,6 +98,52 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
                 with self.assertRaises(EquipmentError):
                     self.char1.equipment.validate_slot_usage(obj)
 
+    def test_display_loadout(self):
+        self.assertEqual(
+            self.char1.equipment.display_loadout(),
+            "You are fighting with your bare fists and have no shield.\n"
+            "You wear no armor and no helmet."
+        )
+        self.char1.equipment.move(self.weapon)
+        self.char1.equipment.move(self.shield)
+        self.char1.equipment.move(self.armor)
+        self.char1.equipment.move(self.helmet)
+        self.assertEqual(
+            self.char1.equipment.display_loadout(),
+            "You are wielding weapon in one hand. You have shield in your off hand.\n"
+            "You are wearing armor and helmet on your head."
+        )
+        self.char1.equipment.move(self.big_weapon)
+        self.assertEqual(
+            self.char1.equipment.display_loadout(),
+            "You wield big_weapon with both hands.\n"
+            "You are wearing armor and helmet on your head."
+        )
+
+    def test_display_backpack(self):
+        self.assertEqual(
+            self.char1.equipment.display_backpack(),
+            "Backpack is empty."
+        )
+        self.char1.equipment.move(self.item)
+        self.char1.equipment.move(self.item2)
+        self.assertEqual(
+            self.char1.equipment.display_backpack(),
+            "backpack item [|b1|n] slot(s)\n"
+            "backpack item 2 [|b5|n] slot(s)"
+        )
+
+    def test_display_slot_usage(self):
+        self.assertEqual(
+            self.char1.equipment.display_slot_usage(),
+            "|b0/11|n"
+        )
+        self.char1.equipment.move(self.item)
+        self.assertEqual(
+            self.char1.equipment.display_slot_usage(),
+            "|b1/11|n"
+        )
+
     @parameterized.expand(
         [
             # item, where
