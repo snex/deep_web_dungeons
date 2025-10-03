@@ -156,13 +156,10 @@ class ConsumableHealingObject(ConsumableObject):
 
     def at_use(self, user, *args, **kwargs):
         """
-        Heal the user `heal_value` HP on use, up to their maximum.
+        Heal the user `heal_value` HP on use.
         """
 
-        # user.heal(self.heal_value)
-        new_hp = user.hp + self.heal_value
-        user.hp = min(user.hp_max, new_hp)
-        user.msg(f"You {self.consume_method} a {self.key} and feel better.")
+        user.heal(self.heal_value)
 
 
 class WeaponObject(Object):
