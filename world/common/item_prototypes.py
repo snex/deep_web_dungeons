@@ -107,11 +107,41 @@ BASE_HELMET = {
 HELMET_LEATHER_HOOD_COMMON = {
     "prototype_parent": "base_helmet",
     "prototype_key": "helmet_leather_hood_common",
-    "key": "Leather Hood",
+    "key": "leather hood",
 }
 
 HELMET_IRON_HELM_COMMON = {
     "prototype_parent": "base_helmet",
     "prototype_key": "helmet_iron_helm_common",
-    "key": "Iron Helm",
+    "key": "iron helm",
+}
+
+BASE_CONSUMABLE = {
+    "prototype_key": "base_consumable",
+    "typeclass": "typeclasses.objects.ConsumableObject",
+    "inventory_use_slot": WieldLocation.BACKPACK
+}
+
+BASE_HEALING_CONSUMABLE = {
+    "prototype_parent": "base_consumable",
+    "prototype_key": "base_healing_consumable",
+    "typeclass": "typeclasses.objects.ConsumableHealingObject"
+}
+
+RATION = {
+    "prototype_parent": "base_healing_consumable",
+    "prototype_key": "ration",
+    "key": "ration",
+    "uses": 1,
+    "heal_value": 3,
+    "consume_method": "eat"
+}
+
+SMALL_HEALING_POTION = {
+    "prototype_parent": "base_healing_consumable",
+    "prototype_key": "small_healing_potion",
+    "key": "small healing potion",
+    "uses": 1,
+    "heal_value": 10,
+    "consume_method": "drink"
 }
