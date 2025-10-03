@@ -1,2 +1,4 @@
-evennia
+# use local evennia pulled from https://github.com/snex/evennia
+../evennia/dist/evennia-5.0.1-py3-none-any.whl
 scipy
+tracery
