@@ -40,13 +40,19 @@ def in_range(accessing_obj, accessed_obj, *args, **kwargs):
 def melee_equipped(accessing_obj, accessed_obj, *args, **kwargs):
     """returns true if accessing_obj has a melee weapon equipped"""
     if hasattr(accessing_obj, 'weapon'):
-        return accessing_obj.weapon.attack_range.name == "MELEE"
+        if hasattr(accessing_obj.weapon, 'attack_range'):
+            return accessing_obj.weapon.attack_range.name == "MELEE"
+        else:
+            return False
     else:
       return False
 
 def ranged_equipped(accessing_obj, accessed_obj, *args, **kwargs):
     """returns true if accessing_obj hsa a ranged weapon equipped"""
     if hasattr(accessing_obj, 'weapon'):
-        return accessing_obj.weapon.attack_range.name == "RANGED"
+        if hasattr(accessing_obj.weapon, 'attack_range'):
+            return accessing_obj.weapon.attack_range.name == "RANGED"
+        else:
+            return False
     else:
       return False
