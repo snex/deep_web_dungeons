@@ -3,6 +3,7 @@ EvAdventure character generation.
 
 """
 import random
+import world.common.item_prototypes
 
 from django.conf import settings
 
@@ -11,6 +12,8 @@ from evennia.contrib.grid.xyzgrid.xyzgrid import get_xyzgrid
 from evennia.objects.models import ObjectDB
 from evennia.prototypes.spawner import spawn
 from evennia.utils.evmenu import EvMenu
+from evennia.utils.logger import log_err
+from random import choice
 from typeclasses.characters import Character
 from world.characters.classes import CharacterClasses, CharacterClass
 from world.characters.races import Races, Race
@@ -24,7 +27,7 @@ _ABILITIES = {
 }
 
 _TEMP_SHEET = """
-{name} the {race} {cclass}
+{name} the {gender} {race} {cclass}
 
 STR +{strength}
 CUN +{cunning}
@@ -54,6 +57,9 @@ class TemporaryCharacterSheet:
         stats[cclass.secondary_stat] = 2
         return stats
 
+    def _random_gender(self):
+        return choice(["male", "female"])
+
     def _random_class(self) -> CharacterClass:
         return random.choice(_SORTED_CLASSES)
 
@@ -77,6 +83,7 @@ class TemporaryCharacterSheet:
     def __init__(self):
         # name will likely be modified later
         self.name = dice.roll_random_table("1d282", chargen_tables["name"])
+        self.gender = self._random_gender()
 
         self.race = self._random_race()
         self.cclass = self._random_class()
@@ -91,22 +98,16 @@ class TemporaryCharacterSheet:
         self.cunning += self.race.cunning_mod
 
         # physical attributes (only for rp purposes)
-        physique = dice.roll_random_table("1d20", chargen_tables["physique"])
-        face = dice.roll_random_table("1d20", chargen_tables["face"])
-        skin = dice.roll_random_table("1d20", chargen_tables["skin"])
-        hair = dice.roll_random_table("1d20", chargen_tables["hair"])
-        clothing = dice.roll_random_table("1d20", chargen_tables["clothing"])
-        speech = dice.roll_random_table("1d20", chargen_tables["speech"])
-        virtue = dice.roll_random_table("1d20", chargen_tables["virtue"])
-        vice = dice.roll_random_table("1d20", chargen_tables["vice"])
-        background = dice.roll_random_table("1d20", chargen_tables["background"])
-        misfortune = dice.roll_random_table("1d20", chargen_tables["misfortune"])
-        alignment = dice.roll_random_table("1d20", chargen_tables["alignment"])
+        self.physique = dice.roll_random_table("1d20", chargen_tables["physique"])
+        self.face = dice.roll_random_table("1d20", chargen_tables["face"])
+        self.skin = dice.roll_random_table("1d20", chargen_tables["skin"])
+        self.hair = dice.roll_random_table("1d20", chargen_tables["hair"])
+        self.clothing = dice.roll_random_table("1d20", chargen_tables["clothing"])
+        self.speech = dice.roll_random_table("1d20", chargen_tables["speech"])
 
         self.desc = (
-            f"You are {physique} with a {face} face, {skin} skin, {hair} hair, {speech} speech, and"
-            f" {clothing} clothing. You were a {background.title()}, but you were {misfortune} and"
-            f" ended up a wanderer. You are {virtue} but also {vice}. You tend towards {alignment}."
+            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face, {self.skin} skin, {self.hair} hair, {self.speech} speech, and"
+            f" {self.clothing} clothing."
         )
 
         self.hp_max = 10 + self.cclass.health_dice[1]
@@ -118,20 +119,17 @@ class TemporaryCharacterSheet:
 
         # random equipment
         self.armor = dice.roll_random_table("1d20", chargen_tables["armor"])
-
-        _helmet_and_shield = dice.roll_random_table("1d20", chargen_tables["helmets and shields"])
-        self.helmet = "helmet" if "helmet" in _helmet_and_shield else "none"
-        self.shield = "shield" if "shield" in _helmet_and_shield else "none"
-
+        self.shield = dice.roll_random_table("1d20", chargen_tables["shield"])
+        self.helmet = dice.roll_random_table("1d20", chargen_tables["helmet"])
         self.weapon = dice.roll_random_table("1d20", chargen_tables["starting weapon"])
 
         self.backpack = [
             "ration",
             "ration",
-            dice.roll_random_table("1d20", chargen_tables["dungeoning gear"]),
-            dice.roll_random_table("1d20", chargen_tables["dungeoning gear"]),
-            dice.roll_random_table("1d20", chargen_tables["general gear 1"]),
-            dice.roll_random_table("1d20", chargen_tables["general gear 2"]),
+        #     dice.roll_random_table("1d20", chargen_tables["dungeoning gear"]),
+        #     dice.roll_random_table("1d20", chargen_tables["dungeoning gear"]),
+        #     dice.roll_random_table("1d20", chargen_tables["general gear 1"]),
+        #     dice.roll_random_table("1d20", chargen_tables["general gear 2"]),
         ]
 
     def show_sheet(self):
@@ -143,6 +141,7 @@ class TemporaryCharacterSheet:
 
         return _TEMP_SHEET.format(
             name=self.name,
+            gender=self.gender,
             strength=self.strength,
             cunning=self.cunning,
             will=self.will,
@@ -158,7 +157,7 @@ class TemporaryCharacterSheet:
 
         """
         grid = get_xyzgrid()
-        start_location = grid.get_room(('12', '7', 'riverport'))
+        start_location = grid.get_room(('12', '6', 'riverport'))
         if start_location:
             start_location = start_location[0] # The room we got above is a queryset so we get it by index
         else:
@@ -167,13 +166,20 @@ class TemporaryCharacterSheet:
         default_home = ObjectDB.objects.get_id(settings.DEFAULT_HOME)
         permissions = settings.PERMISSION_ACCOUNT_DEFAULT
 
+        # set the desc a final time to get the right details!
+        self.desc = (
+            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face, {self.skin} skin, {self.hair} hair, {self.speech} speech, and"
+            f" {self.clothing} clothing."
+        )
+
         # creating character with given abilities
-        new_character, _err = Character.create(
+        new_character, err = Character.create(
             key=self.name,
             location=start_location,
             home=default_home,
             permissions=permissions,
             attributes=(
+                ("gender", self.gender),
                 ("strength", self.strength),
                 ("cunning", self.cunning),
                 ("will", self.will),
@@ -188,6 +194,9 @@ class TemporaryCharacterSheet:
                 ("desc", self.desc),
             ),
         )
+
+        if err:
+            log_err(f"Error during character creation: #{err}")
 
         new_character.locks.add(
             "puppet:id(%i) or pid(%i) or perm(Developer) or pperm(Developer);delete:id(%i) or"
@@ -243,6 +252,7 @@ def node_chargen(caller, raw_string, **kwargs):
     tmp_character = kwargs["tmp_character"]
     options = [
         {"desc": "Change your name", "goto": ("node_change_name", kwargs)},
+        {"desc": "Change your gender", "goto": ("node_show_genders", kwargs)},
         {"desc": "Change your race", "goto": ("node_show_races", kwargs)},
         {"desc": "Change your class", "goto": ("node_show_classes", kwargs)},
         {"desc": "Accept and create character", "goto": ("node_apply_character", kwargs)},
@@ -257,9 +267,10 @@ def _update_name(caller, raw_string, **kwargs):
     Used by node_change_name below to check what user entered and update the name if appropriate.
 
     """
-    if raw_string:
+
+    if raw_string and raw_string.strip() != '':
         tmp_character = kwargs["tmp_character"]
-        tmp_character.name = raw_string.lower().capitalize()
+        tmp_character.name = raw_string.strip().lower().capitalize()
 
     return "node_chargen", kwargs
 
@@ -303,6 +314,8 @@ def start_chargen(caller, session=None):
         "node_chargen": node_chargen,
         "node_change_name": node_change_name,
         "node_apply_character": node_apply_character,
+        "node_show_genders": node_show_genders,
+        "node_apply_gender": node_apply_gender,
         "node_show_classes": node_show_classes,
         "node_select_class": node_select_class,
         "node_apply_class": node_apply_class,
@@ -323,6 +336,35 @@ def start_chargen(caller, session=None):
         startnode_input=("sgsg", {"tmp_character": tmp_character}),
     )
 
+def node_show_genders(caller, raw_string, **kwargs):
+    """Let user select a gender"""
+    text = """\
+        Select a |cGender|n.
+
+        There are no game mechanic differences between genders, but there may be roleplay/story differences.
+
+        Select one by number below
+    """
+
+    options = [
+        {
+            "desc": "|cMale|n",
+            "goto": ("node_apply_gender", {"gender": "male", **kwargs})
+        },
+        {
+            "desc": "|cFemale|n",
+            "goto": ("node_apply_gender", {"gender": "female", **kwargs})
+        }
+    ]
+
+    return (text, ""), options
+
+def node_apply_gender(caller, raw_string, **kwargs):
+    gender = kwargs.get('gender')
+    tmp_character = kwargs["tmp_character"]
+    tmp_character.gender = gender
+
+    return node_chargen(caller, '', tmp_character=tmp_character)
 
 def node_show_classes(caller, raw_string, **kwargs):
     """Starting page and Class listing."""

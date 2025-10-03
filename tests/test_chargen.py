@@ -22,30 +22,31 @@ class CharacterGenerationTest(BaseEvenniaTest):
 
     """
 
+    @patch('world.chargen.TemporaryCharacterSheet._random_gender')
     @patch('world.chargen.TemporaryCharacterSheet._random_class')
     @patch('world.chargen.TemporaryCharacterSheet._random_race')
     @patch("world.rules.randint")
-    def setUp(self, mock_randint, mock_random_race, mock_random_class):
+    def setUp(self, mock_randint, mock_random_race, mock_random_class, mock_random_gender):
         super().setUp()
-        mock_randint.return_value = 10
+        mock_randint.return_value = 15
+        mock_random_gender.return_value = "female"
         mock_random_race.return_value = Races.Human
         mock_random_class.return_value = CharacterClasses.Warrior
         self.chargen = chargen.TemporaryCharacterSheet()
 
     def test_base_chargen(self):
         self.assertEqual(self.chargen.strength, 3)
-        self.assertEqual(self.chargen.armor, "gambeson")
-        self.assertEqual(self.chargen.shield, "shield")
+        self.assertEqual(self.chargen.armor, "Leather Armor")
+        self.assertEqual(self.chargen.shield, "buckler")
         self.assertEqual(
-            self.chargen.backpack, ["ration", "ration", "waterskin", "waterskin", "drill", "twine"]
+            self.chargen.backpack, ["ration", "ration"]
         )
 
     def test_build_desc(self):
         self.assertEqual(
             self.chargen.desc,
-            "You are scrawny with a broken face, pockmarked skin, greased hair, hoarse speech, and "
-            "stained clothing. You were a Herbalist, but you were exiled and ended up a wanderer. You "
-            "are honest but also irascible. You tend towards neutrality.",
+            "Enio is a female Human, statuesque with a sunken face, sallow skin, oily hair, rapid-fire speech, and "
+            "oversized clothing."
         )
 
     @patch("world.chargen.spawn")
@@ -57,7 +58,6 @@ class CharacterGenerationTest(BaseEvenniaTest):
 
         character = self.chargen.apply(account)
 
-        self.assertIn("Herbalist", character.db.desc)
         self.assertEqual(
             character.equipment.all(),
             [
