@@ -195,7 +195,8 @@ class CombatHandler:
 
             if fighter.is_pc:
                 # Temporary message for debugging
-                fighter.msg("You are victorious!")
+                # fighter.msg("You are victorious!")
+                pass
 
         self.positions = {}
 
