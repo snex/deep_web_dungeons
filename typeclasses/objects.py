@@ -118,7 +118,7 @@ class ConsumableObject(Object):
 
     obj_type = ObjType.CONSUMABLE
     size = AttributeProperty(0.25)
-    uses = AttributeProperty(1)
+    uses = AttributeProperty(default=1)
 
     def at_use(self, user, *args, **kwargs):
         """
@@ -145,6 +145,24 @@ class ConsumableObject(Object):
         if self.uses <= 0:
             user.msg(f"{self.key} was used up.")
             self.delete()
+
+class ConsumableHealingObject(ConsumableObject):
+    """
+    Item that heals when used.
+    """
+
+    heal_value = AttributeProperty(default=3)
+    consume_method = AttributeProperty(default="drink")
+
+    def at_use(self, user, *args, **kwargs):
+        """
+        Heal the user `heal_value` HP on use, up to their maximum.
+        """
+
+        # user.heal(self.heal_value)
+        new_hp = user.hp + self.heal_value
+        user.hp = min(user.hp_max, new_hp)
+        user.msg(f"You {self.consume_method} a {self.key} and feel better.")
 
 
 class WeaponObject(Object):
