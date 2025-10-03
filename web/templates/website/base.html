@@ -1,0 +1,55 @@
+{% load static sekizai_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="author" content="Evennia Contributors" />
+    <meta name="generator" content="Evennia" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="icon" type="image/x-icon" href="{% static "website/images/evennia_logo.png" %}" />
+
+    <!-- Base CSS -->
+    <link rel="stylesheet" type="text/css" href="{% static "website/css/website.css" %}">
+
+    {% comment %}
+    Allows for loading custom styles without overriding the base site styles
+    {% endcomment %}
+    <!-- Custom CSS -->
+    <link rel="stylesheet" type="text/css" href="{% static "website/css/custom.css" %}">
+
+    {% block header_ext %}
+    {% endblock %}
+
+    <title>Deep Web Dungeons</title>
+  </head>
+  <body>
+    {% block body %}
+
+    <div class="container main-content mt-4" id="main-copy">
+      <div class="row">
+        <div class="{% if sidebar %}col-8{% else %}col{% endif %}">
+          {% include 'website/messages.html' %}
+
+          {% block content %}
+          {% endblock %}
+
+          {% include 'website/pagination.html' %}
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+    {% block footer %}
+        <div class="container">
+          <div class="row justify-content-center">
+          </div>
+        </div>
+    {% endblock %}
+    </footer>
+
+    {% endblock %}
+  </body>
+</html>
