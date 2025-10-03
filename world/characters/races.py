@@ -24,38 +24,38 @@ class Races:
         key="human",
         name="Human",
         cunning_mod=1,
-        desc="Your average human.",
+        desc="Humans are versatile and cunning. +1 CUN.",
     )
 
     Dwarf = Race(
         key="dwarf",
         name="Dwarf",
         strength_mod=1,
-        desc="Short and strong.",
+        desc="Dwarves are short and strong. +1 STR",
     )
 
     HalfElf = Race(
         key="half_elf",
         name="Half Elf",
         will_mod=1,
-        desc="Bit less average"
+        desc="Half-elves are intelligent and graceful. +1 WIL"
     )
 
     Elf = Race(
         key="elf",
         name="Elf",
         strength_mod=-1,
-        will_mod=1,
-        desc="Regular elves",
+        will_mod=2,
+        desc="Elves are very intelligent but frail. -1 STR, +2 WIL",
     )
 
     Goblin = Race(
         key="goblin",
         name="Goblin",
         cunning_mod=1,
-        strength_mod=-1,
+        strength_mod=-2,
         will_mod=1,
-        desc="Small and cunning"
+        desc="Goblins are small, but cunning. -2 STR, +1 CUN, +1 WIL"
     )
 
     Orc = Race(
@@ -63,7 +63,7 @@ class Races:
         name="Orc",
         strength_mod=2,
         will_mod=-1,
-        desc="Tall and strong",
+        desc="Orcs are very strong but not very bright. +2 STR, -1 WIL",
     )
 
     Lizardman = Race(
@@ -71,16 +71,16 @@ class Races:
         name="Lizardman",
         cunning_mod=1,
         strength_mod=1,
-        will_mod=-1,
-        desc="Reptilian hunters"
+        will_mod=-2,
+        desc="Lizardmen are strong and quick, but quite stupid. +1 STR, +1 CUN, -2 WIL"
     )
 
     Ratman = Race(
         key="ratman",
         name="Ratman",
         cunning_mod=2,
-        strength_mod=-1,
-        desc="Shorter but cunning"
+        strength_mod=-2,
+        desc="Ratmen are very cunning, but weak. -2 STR, +2 CUN"
     )
 
     @classmethod
