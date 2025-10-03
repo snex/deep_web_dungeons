@@ -370,7 +370,7 @@ class CombatHandler:
                 mapping={"target": target, "weapon": weapon or "fists"},
                 from_obj=attacker,
             )
-            target.at_damage(damage)
+            target.at_damage(damage, attacker)
 
             return damage
         else:
@@ -470,7 +470,7 @@ class CombatHandler:
                 mapping={"target": target, "weapon": weapon},
                 from_obj=attacker,
             )
-            target.at_damage(damage)
+            target.at_damage(damage, attacker)
 
             return damage
         else:
@@ -573,7 +573,7 @@ class CombatHandler:
                 mapping={"target": target, "weapon": weapon},
                 from_obj=attacker,
             )
-            target.at_damage(damage)
+            target.at_damage(damage, attacker)
 
             return damage
         else:
