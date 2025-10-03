@@ -95,6 +95,13 @@ class Script(DefaultScript):
 
 class GlobalRecoveryScript( Script ):
 
+    def at_stop(self):
+        """
+        This script should never stop, otherwise player stamina will never recover.
+        """
+
+        self.start()
+
     def at_repeat(self):
         """
         Cycle through all the participants currently registered in combat and execute their recovery
