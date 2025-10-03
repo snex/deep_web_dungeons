@@ -23,6 +23,7 @@ several more options for customizing the Guest account system.
 """
 
 from evennia.accounts.accounts import DefaultAccount, DefaultGuest
+from evennia.typeclasses.attributes import AttributeProperty
 
 
 class Account(DefaultAccount):
@@ -92,7 +93,26 @@ class Account(DefaultAccount):
 
     """
 
-    pass
+    preferences = AttributeProperty(default={})
+
+    ooc_appearance_template = """
+--------------------------------------------------------------------
+{header}
+
+{sessions}
+
+  |whelp|n - more commands
+  |wpublic <text>|n - talk on public channel
+  |wcharcreate - create new character
+  |wchardelete <name>|n - delete a character
+  |wprefs|n - manage your preferences
+  |wic <name>|n - enter the game as character (|wooc|n to get back here)
+  |wic|n - enter the game as latest character controlled.
+
+{characters}
+{footer}
+--------------------------------------------------------------------
+""".strip()
 
 
 class Guest(DefaultGuest):
