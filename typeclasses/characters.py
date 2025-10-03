@@ -14,8 +14,8 @@ from evennia.objects.objects import DefaultCharacter
 from evennia.typeclasses.attributes import AttributeProperty, NAttributeProperty
 from evennia.utils.evform import EvForm
 from evennia.utils.evtable import EvTable
-from evennia.utils.logger import log_trace
-from evennia.utils.utils import lazy_property
+from evennia.utils.logger import log_err, log_trace
+from evennia.utils.utils import inherits_from, lazy_property
 from world import rules
 from world.buffs import AbstractBuffHandler
 from world.characters.classes import CharacterClasses, CharacterClass
@@ -50,6 +50,7 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
     will = AttributeProperty(default=1)
     cunning = AttributeProperty(default=1)
 
+    gender = AttributeProperty(default="male")
     cclass_key = AttributeProperty()
     race_key = AttributeProperty()
 
@@ -103,9 +104,55 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         elif 30 < percent <= 45:
             return "|yWounded|n"
         elif 15 < percent <= 30:
-            return "|rBadly wounded|n"
+            return "|rBadly Wounded|n"
         elif 1 < percent <= 15:
-            return "|rBarely hanging on|n"
+            return "|rBarely Hanging On|n"
+        elif percent == 0:
+            return "|RCollapsed!|n"
+
+    @property
+    def mana_level(self):
+        """
+        String describing how much mana the character has
+        """
+        percent = max(0, min(100, 100 * (self.mana / self.mana_max)))
+        if 95 < percent <= 100:
+            return "|gPerfect|n"
+        elif 80 < percent <= 95:
+            return "|gWell Studied|n"
+        elif 60 < percent <= 80:
+            return "|GStudied|n"
+        elif 45 < percent <= 60:
+            return "|yLosing Concentration|n"
+        elif 30 < percent <= 45:
+            return "|ySlightly Drained|n"
+        elif 15 < percent <= 30:
+            return "|rDrained|n"
+        elif 1 < percent <= 15:
+            return "|rBarely Hanging On|n"
+        elif percent == 0:
+            return "|REmpty!|n"
+
+    @property
+    def stamina_level(self):
+        """
+        String describing how tired this character is.
+        """
+        percent = max(0, min(100, 100 * (self.stamina / self.stamina_max)))
+        if 95 < percent <= 100:
+            return "|gPerfect|n"
+        elif 80 < percent <= 95:
+            return "|gLight Sweat|n"
+        elif 60 < percent <= 80:
+            return "|GSweaty|n"
+        elif 45 < percent <= 60:
+            return "|yWinded|n"
+        elif 30 < percent <= 45:
+            return "|yTired|n"
+        elif 15 < percent <= 30:
+            return "|rExhausted|n"
+        elif 1 < percent <= 15:
+            return "|rBarely Hanging On|n"
         elif percent == 0:
             return "|RCollapsed!|n"
 
@@ -119,11 +166,11 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         self.hp += healed
 
         if healer is self:
-            self.msg(f"|gYou heal yourself for {healed} health.|n")
+            self.msg(f"|gYou heal yourself and feel better.|n")
         elif healer:
-            self.msg(f"|g{healer.key} heals you for {healed} health.|n")
+            self.msg(f"|g{healer.key} heals you and you feel better.|n")
         else:
-            self.msg(f"You are healed for {healed} health.")
+            self.msg(f"You are healed and feel better.")
 
     @lazy_property
     def equipment(self):
@@ -178,13 +225,12 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         Called periodically by the combat ticker
 
         """
-        self.stamina += self.strength
-        if self.stamina > self.stamina_max:
-            self.stamina = self.stamina_max
 
-        self.mana += self.will
-        if self.mana > self.mana_max:
-            self.mana = self.mana_max
+        if self.stamina < self.stamina_max:
+          self.stamina += max(self.strength, 1)
+
+        if self.mana < self.mana_max:
+          self.mana += max(self.will, 1)
 
     def at_defeat(self):
         """
@@ -408,7 +454,22 @@ class Character(BaseCharacter):
         )
 
     def at_post_move(self, source_location, **kwargs):
-        super().at_post_move(source_location, **kwargs)
+        obj = self
+
+        if inherits_from(self, Character):
+            obj = self.account
+
+        if not obj:
+            log_err(f"at_post_move called on a Character with no account: {self}")
+            return
+
+        if self.location.access(self, "view"):
+            text = self.at_look(
+                self.location,
+                show_desc=obj.preferences.get("look_on_enter", True)
+            )
+            self.msg(text=(text, {"type": "look"}))
+
         if map_getter := getattr(self.location, 'get_map_display', None):
             # Send the map to the WebClient
             self.msg(map=map_getter(looker=self))
