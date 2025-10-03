@@ -62,16 +62,6 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
             ],
         )
 
-    def _get_empty_slots(self):
-        return {
-            WieldLocation.BACKPACK: [],
-            WieldLocation.WEAPON_HAND: None,
-            WieldLocation.SHIELD_HAND: None,
-            WieldLocation.TWO_HANDS: None,
-            WieldLocation.BODY: None,
-            WieldLocation.HEAD: None,
-        }
-
     def test_equipmenthandler_max_slots(self):
         self.assertEqual(self.char1.equipment.max_slots, 11)
 
@@ -156,7 +146,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         ]
     )
     def test_move(self, itemname, where):
-        self.assertEqual(self.char1.equipment.slots, self._get_empty_slots())
+        self.assertEqual(self.char1.equipment.slots, self.char1.equipment._empty_slots())
 
         obj = getattr(self, itemname)
         self.char1.equipment.move(obj)

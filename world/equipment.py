@@ -32,6 +32,16 @@ class EquipmentHandler:
         self.obj = obj
         self._load()
 
+    def _empty_slots(self):
+        return {
+            WieldLocation.BACKPACK: [],
+            WieldLocation.WEAPON_HAND: None,
+            WieldLocation.SHIELD_HAND: None,
+            WieldLocation.TWO_HANDS: None,
+            WieldLocation.BODY: None,
+            WieldLocation.HEAD: None,
+        }
+
     def _load(self):
         """
         Load or create a new slot storage.
@@ -40,14 +50,7 @@ class EquipmentHandler:
         self.slots = self.obj.attributes.get(
             self.save_attribute,
             category="inventory",
-            default={
-                WieldLocation.WEAPON_HAND: None,
-                WieldLocation.SHIELD_HAND: None,
-                WieldLocation.TWO_HANDS: None,
-                WieldLocation.BODY: None,
-                WieldLocation.HEAD: None,
-                WieldLocation.BACKPACK: [],
-            },
+            default=self._empty_slots()
         )
 
     def _save(self):
