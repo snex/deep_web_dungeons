@@ -10,6 +10,7 @@ from evennia.contrib.grid.xyzgrid.xyzroom import XYZRoom
 from evennia.objects.objects import DefaultRoom
 from world.overworld import Overworld, OverworldMap
 from .objects import ObjectParent
+from evennia.utils.logger import log_err
 
 CHAR_SYMBOL = "|w@|n"
 CHAR_ALT_SYMBOL = "|w>|n"
@@ -44,6 +45,13 @@ class Room(ObjectParent, DefaultRoom):
     allow_combat = False
     allow_pvp = False
     allow_death = False
+
+    def format_appearance(self, appearance, looker, **kwargs):
+        """
+        By default, blank lines are removed. Override this behavior.
+        """
+
+        return appearance.strip()
 
 
 class OverworldRoom(wilderness.WildernessRoom, Room):
@@ -93,10 +101,20 @@ class TownRoom(Room, XYZRoom):
     """
     Combines the XYZGrid functionality with Ainneve-specific room code.
     """
-    map_visual_range = 2
-    map_separator_char = "|n"
     map_area_client = False
     map_fill_all = False
+
+    def get_display_desc(self, looker, **kwargs):
+        """
+        Override this so that we don't display room description if user preference turns it off.
+        """
+
+        if kwargs.get("show_desc", True) is False:
+            return ""
+
+        return super().get_display_desc(looker, **kwargs)
+
+
 
 
 class PvPRoom(Room):
