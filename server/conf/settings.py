@@ -10,7 +10,12 @@ from evennia.settings_default import *
 ######################################################################
 
 # This is the name of your game. Make it catchy!
-SERVERNAME = "ainneve"
+SERVERNAME = "Deep Web Dungeons"
+SERVER_HOSTNAME = "deep-web-dungeons.i2p"
+GAME_SLOGAN = "Dive into the Deep Web Dungeons!"
+WEBCLIENT_ENABLED = False
+IN_GAME_ERRORS = False
+BROADCAST_SERVER_RESTART_MESSAGES = False
 
 # Multiple characters per account, requires manual creation and login
 MULTISESSION_MODE = 2
@@ -19,13 +24,8 @@ AUTO_PUPPET_ON_LOGIN = False
 MAX_NR_CHARACTERS = 5
 
 FILE_HELP_ENTRY_MODULES = [ 'world.help.combat_help' ]
+BASE_CHARACTER_TYPECLASS = "typeclasses.characters.Character"
 
-
-# lightly customized websocket protocol to play better with the custom client
-WEBSOCKET_PROTOCOL_CLASS = "server.portal.websocket.WebSocketClient"
-
-# CACHE BUSTERRRR
-TEMPLATES[0]["OPTIONS"]["context_processors"].append("web.custom_context.extra_context")
 
 ######################################################################
 # XYZ Grid install settings
