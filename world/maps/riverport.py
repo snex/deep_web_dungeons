@@ -19,6 +19,9 @@ class RoadNode(xymap_legend.MapNode):
 
 class FountainNode(xymap_legend.MapNode):
     display_symbol = "|b⇈|n"
+    prototype = {
+        "prototype_parent": "riverport_xyz_room"
+    }
 
 class GateNode(xymap_legend.MapNode):
     # Note: these nodes will need to be manually connected to the overworld
@@ -40,6 +43,9 @@ class HouseNode(xymap_legend.MapNode):
 
 class ChiefHouseNode(HouseNode):
     display_symbol = "|g♔|n"
+    prototype = {
+        "prototype_parent": "riverport_xyz_room"
+    }
 
 class TavernNode(xymap_legend.MapNode):
     display_symbol = "|c♫|n"
