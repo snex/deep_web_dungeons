@@ -3,7 +3,6 @@ Preferences menu.
 """
 
 from evennia.utils.evmenu import EvMenu
-from evennia import logger
 
 _PREFS = {
     "look_on_enter": {
@@ -13,12 +12,13 @@ _PREFS = {
 }
 
 def node_change_look_on_enter(caller, raw_string, **kwargs):
-    try:
-        caller.preferences["look_on_enter"] = not kwargs["current_val"]
+    """
+    Change the user's preference for look_on_enter
+    """
 
-        return node_display_prefs(caller, "")
-    except RuntimeError:
-        logger.log_err("wtf bro")
+    caller.preferences["look_on_enter"] = not kwargs["current_val"]
+
+    return node_display_prefs(caller, "")
 
 def node_display_prefs(caller, raw_string, **kwargs):
     """
@@ -42,9 +42,12 @@ def node_display_prefs(caller, raw_string, **kwargs):
             }
         )
 
-        return ("Select a preference by number to change it, or type `quit` to go back.", ""), options
+        return (
+            "Select a preference by number to change it, or type `quit` to go back.",
+            ""
+        ), options
 
-def start_prefs(caller, session=None):
+def start_prefs(caller, _session=None):
     """
     This is a start point for running the user preferences menu.
     """
