@@ -1,3 +1,5 @@
+# pylint: skip-file
+# this file was just included from the tutorial so its full of junk and likely cant work as-is
 """
 EvAdventure Shop system.
 

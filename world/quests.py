@@ -14,10 +14,7 @@ another quest.
 
 """
 
-from copy import copy, deepcopy
-
 from evennia.utils import dbserialize
-
 
 class Quest:
     """
@@ -85,10 +82,12 @@ class Quest:
 
     @property
     def questhandler(self):
+        """Return all quests"""
         return self.quester.quests
 
     @property
     def current_step(self):
+        """Return current step of active quest"""
         return self._current_step
 
     @current_step.setter
@@ -146,9 +145,9 @@ class Quest:
         if callable(help_resource):
             # the help_<current_step> can be a method to call
             return help_resource()
-        else:
-            # normally it's just a string
-            return str(help_resource)
+
+        # normally it's just a string
+        return str(help_resource)
 
     # step methods and hooks
 
@@ -165,7 +164,6 @@ class Quest:
         Make sure to cleanup any quest-related data stored when following the quest.
 
         """
-        pass
 
 
 class QuestHandler:
@@ -283,7 +281,7 @@ class QuestHandler:
             help_texts.append(f"|c{quest.key}|n\n {quest.desc}\n\n - {quest.help()}")
         return help_texts
 
-    def progress(self, quest_key=None, *args, **kwargs):
+    def progress(self, *args, quest_key=None, **kwargs):
         """
         Check progress of a given quest or all quests.
 

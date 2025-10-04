@@ -8,7 +8,6 @@ creation commands.
 
 """
 
-
 from evennia.contrib.game_systems.cooldowns import CooldownHandler
 from evennia.objects.objects import DefaultCharacter
 from evennia.typeclasses.attributes import AttributeProperty, NAttributeProperty
@@ -339,8 +338,6 @@ class Character(BaseCharacter):
     def quests(self):
         """Access and track quests"""
         return QuestHandler(self)
-
-
 
     def at_pre_object_receive(self, moved_object, source_location, **kwargs):
         """
