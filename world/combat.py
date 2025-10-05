@@ -1,6 +1,10 @@
+"""
+Combat Rules engine.
+"""
+
 import random
-from random import randrange
 from typing import Self, TYPE_CHECKING
+from world import rules
 
 from .enums import CombatRange, AttackType
 
@@ -9,77 +13,122 @@ if TYPE_CHECKING:
     from typeclasses.characters import BaseCharacter
     from typeclasses.objects import WeaponObject
 
-_MAX_RANGE = max([en.value for en in CombatRange])
+_MAX_RANGE = max(en.value for en in CombatRange)
 
 # format for combat prompt, currently unused
 # health, mana, current attack cooldown
 COMBAT_PROMPT = "HP {hp} - MP {mana} - SP {stamina}"
 
+class AttackRules:
+    """
+    Class to determine whether or not an attacker can attack a target.
+    """
+
+    _RULES = {
+        "_not_in_combat": "You are not in combat.",
+        "_target_not_in_combat": "{target.get_display_name(attacker)} is not in combat with you.",
+        "_no_pvp_zone": "You can't attack another player here.",
+        "_player_on_cooldown": "You can't attack for"
+                               "{attacker.cooldowns.time_left('attack', use_int=True)}"
+                               "more seconds.",
+        "_target_out_of_range": "{target} is too far away.",
+        "_out_of_stamina": "You are too exhausted!",
+    }
+
+    def __init__(self, attacker, target, combat_handler):
+        self.attacker = attacker
+        self.target = target
+        self.combat_handler = combat_handler
+        self.invalid_msg = ""
+
+    def attack_invalid(self):
+        """
+        Run through the attack rules and return True if any rules trigger.
+        Also sets self.invalid_msg of the rule that triggered.
+        """
+
+        for rule, msg in self._RULES.items():
+            if rule(self.attacker, self.target, self.combat_handler):
+                self.invalid_msg = msg.format(self.attacker, self.target, self.combat_handler)
+                return True
+
+        return False
+
+    @property
+    def invalid_msg(self):
+        """ The message of the rule that caused the attack to be invalid. """
+        return self.invalid_msg
+
+    def _not_in_combat(self, attacker, _target, _combat_handler):
+        return not attacker.combat
+
+    def _target_not_in_combat(self, attacker, target, _combat_handler):
+        return not target.combat or target.combat != attacker.combat
+
+    def _no_pvp_zone(self, _attacker, target, _combat_handler):
+        return target.is_pc and not (target.location and target.location.allow_pvp)
+
+    def _player_on_cooldown(self, attacker, _target, _combat_handler):
+        return not attacker.cooldowns.ready("attack")
+
+    def _target_out_of_range(self, attacker, target, combat_handler):
+        weapon_range = attacker.weapon.attack_range
+        return not combat_handler.in_range(attacker, target, weapon_range)
+
+    def _out_of_stamina(self, attacker, _target, combat_handler):
+        attack_type = attacker.weapon.attack_type
+        stamina_cost = combat_handler.get_attack_stamina_cost(
+            attacker,
+            attack_type,
+            attacker.weapon.stamina_cost
+        )
+        return stamina_cost > attacker.stamina
 
 class CombatRules:
+    """ Class for handling combat rules. """
+
     __slots__ = ("handler",)
 
     def __init__(self, handler: 'CombatHandler'):
         self.handler = handler
 
-    def validate_weapon_attack(self, attacker: 'BaseCharacter', target: 'BaseCharacter', weapon: 'WeaponObject | None' = None) -> bool:
-        if not attacker.combat:
-            attacker.msg("You are not in combat.")
-            return False
+    def validate_weapon_attack(self, attacker: 'BaseCharacter', target: 'BaseCharacter') -> bool:
+        """ Base method for validating weapon attack. """
+        attack_rules = AttackRules(attacker, target, combat_handler=self.handler)
+        invalid_msg = attack_rules.attack_invalid()
 
-        if not target.combat or target.combat != attacker.combat:
-            attacker.msg("They are not in combat with you.")
-            return False
-
-        if target.is_pc and not (target.location and target.location.allow_pvp):
-            attacker.msg("You can't attack another player here.")
-            return False
-
-        if not attacker.cooldowns.ready("attack"):
-            delay = attacker.cooldowns.time_left("attack", use_int=True)
-            attacker.msg(f"You can't attack for {delay} more seconds.")
-            return False
-
-        weapon_range = weapon.attack_range if weapon and weapon.attack_range else CombatRange.MELEE
-        within_range = self.handler.in_range(attacker, target, weapon_range)
-        if not within_range:
-            attacker.msg(f"{target.get_display_name(attacker)} is too far away.")
-            return False
-
-        base_cost = 2
-        if weapon:
-            base_cost = weapon.stamina_cost
-
-        attack_type = weapon.attack_type if weapon and weapon.attack_type else AttackType.MELEE
-        stamina_cost = self.get_attack_stamina_cost(attacker, attack_type, base_cost)
-        if stamina_cost >= attacker.stamina:
-            attacker.msg("You are too exhausted!")
+        if invalid_msg:
+            attacker.msg(invalid_msg)
             return False
 
         return True
 
     def get_initial_position(self, fighter: 'BaseCharacter') -> CombatRange:
+        """ Determine the initial positions of all the combatants. """
         # TODO Ranged fighters should start further apart
         # TODO Fighters should be grouped according to alliance at the start of a fight.
-        # TODO Fighters should be added at the furthest position on their alliance's side if added during the fight.
+        # TODO Fighters should be added at the furthest position on their alliance's side if added
+        #          during the fight.
 
         # Temporary code until we can implement the above
         if fighter.is_pc:
             return CombatRange.MELEE
-        else:
-            return CombatRange.MELEE
+
+        return CombatRange.MELEE
 
     @property
     def is_combat_finished(self) -> bool:
+        """ Determine if combat is finished. """
         return len(self.handler.positions) <= 1
 
     def get_strike_zone(self, attack_location, defense_location):
         """
         We can expand on this to include adjacent sides/etc or weightings/corners
         """
-        return (attack_location == defense_location)
+        return attack_location == defense_location
 
-    def get_attack_stamina_cost(self, attacker: 'BaseCharacter', attack_type: AttackType, base_cost: int) -> int:
+    def get_attack_stamina_cost(self, attacker, _attack_type, base_cost):
+        """ Get stamina cost for attacker. """
         if attacker.aggro == "aggressive":
             cost = int(base_cost * 1.5)
         elif attacker.aggro == "defensive":
@@ -89,39 +138,20 @@ class CombatRules:
 
         return cost
 
-    def get_defense_stamina_cost(self, attacker: 'BaseCharacter', attack_type: AttackType, base_cost: int, target: 'BaseCharacter') -> int:
+    def get_defense_stamina_cost(self, _attacker, _attack_type, _base_cost, _target):
+        """ Get stamina cost to defender (maybe unused?). """
         return 2  # TODO FIXME update this
 
-    def roll(self, roller: 'BaseCharacter', target: 'BaseCharacter', stat: str, is_dodge: bool = False) -> int:
-        """
-        Roll 2d6 + roller's stat +/- roller's aggression + applicable bonuses
-        """
-        roll = randrange(1,6) + randrange(1,6)
-        roll += roller.attributes.get(stat, 0)
-
-        if is_dodge:
-            if roller.aggro == "aggressive":
-                roll += -1
-            elif roller.aggro == "defensive":
-                roll +=  1
-        else:
-            if roller.aggro == "aggressive":
-                roll +=  1
-            elif roller.aggro == "defensive":
-                roll += -1
-
-        # TODO FIXME Add any bonuses this roller has versus the given target
-        roll += 0
-
-        return roll
-
-
 class CombatHandler:
+    """
+    Main class for handling combat.
+    """
+
     __slots__ = ('positions', 'rules')
 
     rules_class = CombatRules
 
-    def __init__(self, attacker: 'BaseCharacter', target: 'BaseCharacter', custom_rules: type(CombatRules) | None = None):
+    def __init__(self, attacker, target, custom_rules=None):
         self.rules = custom_rules(self) if custom_rules else self.rules_class(self)
         self.positions: dict['BaseCharacter', CombatRange] = {}
         self.add(attacker)
@@ -139,16 +169,15 @@ class CombatHandler:
             attacker_combat.merge(target.combat)
             return attacker_combat
 
-        elif attacker_combat:
+        if attacker_combat:
             attacker_combat.add(target)
             return attacker_combat
 
-        elif target_combat:
+        if target_combat:
             target_combat.add(attacker)
             return target_combat
 
-        else:
-            return CombatHandler(attacker, target)
+        return CombatHandler(attacker, target)
 
     def add(self, fighter: 'BaseCharacter') -> None:
         """
@@ -185,10 +214,14 @@ class CombatHandler:
         other.positions = {}
 
     def update(self):
+        """ Check to see if we need to end combat. """
+
         if self.is_finished:
             self.end_combat()
 
     def end_combat(self) -> None:
+        """ End the combat. """
+
         for fighter in self.positions:
             if fighter.combat == self:
                 fighter.combat = None
@@ -202,6 +235,7 @@ class CombatHandler:
 
     @property
     def is_finished(self) -> bool:
+        """ Is Combat finished? """
         return self.rules.is_combat_finished
 
     def get_range(self, attacker: 'BaseCharacter', target: 'BaseCharacter') -> CombatRange:
@@ -218,7 +252,7 @@ class CombatHandler:
 
         return CombatRange.RANGED
 
-    def in_range(self, attacker: 'BaseCharacter', target: 'BaseCharacter', combat_range: CombatRange) -> bool:
+    def in_range(self, attacker, target, combat_range):
         """Check if target is within the specified range of attacker."""
         assert attacker in self.positions, f"Attacker {attacker} is not in combat!"
         assert target in self.positions, f"Target {target} is not in combat!"
@@ -228,6 +262,10 @@ class CombatHandler:
         return distance <= combat_range
 
     def any_in_range(self, attacker: 'BaseCharacter', combat_range: CombatRange) -> bool:
+        """
+        Determine if any opponents are in range to be attacked by `attacker`.
+        """
+
         assert attacker in self.positions, f"Attacker {attacker} is not in combat!"
 
         a_pos = self.positions[attacker]
@@ -278,33 +316,14 @@ class CombatHandler:
 
         return True
 
+    def _is_attack_blocked_or_parried(self, attacker, target, attack_type):
+        """
+        Handle attack being blocked or parried.
+        """
 
-    def at_melee_attack(self, attacker: 'BaseCharacter', target: 'BaseCharacter') -> None:
-        """
-        Proceed with a melee attack.
-        All validations should be done before this method.
-        """
         blocked = False
         parried = False
-        weapon = attacker.weapon
         range_to_target = self.get_range(attacker, target)
-
-        # Make sure the attacker has a basic weapon, if not, default to "fist" melee weapon stats
-        if weapon:
-            min_damage = weapon.min_damage
-            max_damage = weapon.max_damage
-            stamina_cost = weapon.stamina_cost
-            cooldown = weapon.cooldown
-        else:
-            min_damage = 1
-            max_damage = 2
-            stamina_cost = 2
-            cooldown = 2
-
-        attacker_stamina_cost = self.rules.get_attack_stamina_cost(attacker, AttackType.MELEE, stamina_cost)
-        attacker.spend_stamina(attacker_stamina_cost)
-        attacker.cooldowns.add("attack", cooldown)
-
         # Check to see if the target is using a shield
         #   their Block zone matches the Attacker's target zone
         if target.shield is not None:
@@ -319,14 +338,14 @@ class CombatHandler:
             # See if target can defend
             target_defense_stamina_cost = self.rules.get_defense_stamina_cost(
                 attacker,
-                AttackType.MELEE,
-                stamina_cost,
+                attack_type,
+                attacker.weapon.stamina_cost,
                 target
             )
             if target_defense_stamina_cost < target.stamina:
                 target.spend_stamina(target_defense_stamina_cost)
                 if range_to_target == CombatRange.MELEE:
-                    attacker.cooldowns.add("attack", cooldown + 1)
+                    attacker.cooldowns.add("attack", attacker.weapon.cooldown + 1)
                     target.buffs.add_buff("attack", 2, versus=attacker, duration=1)
 
                 if blocked:
@@ -339,13 +358,31 @@ class CombatHandler:
                     mapping={"blocking_item": blocking_item},
                     from_obj=target,
                 )
-                return
+                return True
+        return False
 
-        attack_roll = self.rules.roll(attacker, target, "strength")
-        defense_roll = self.rules.roll(target, attacker, "cunning", is_dodge=True)
-        if attack_roll >= defense_roll:
-            damage = random.randrange(min_damage, max_damage)
-            damage += attacker.strength
+
+    def at_melee_attack(self, attacker, target):
+        """
+        Proceed with a melee attack.
+        All validations should be done before this method.
+        """
+        weapon = attacker.weapon
+
+        attacker_stamina_cost = self.rules.get_attack_stamina_cost(
+            attacker,
+            AttackType.MELEE,
+            weapon.stamina_cost
+        )
+        attacker.spend_stamina(attacker_stamina_cost)
+        attacker.cooldowns.add("attack", weapon.cooldown)
+
+        if self._is_attack_blocked_or_parried(attacker, target, AttackType.MELEE):
+            return 0
+
+        attack_roll = rules.dice.roll("1d20") + attacker.get_ability(weapon.attack_type)
+        if attack_roll >= target.armor + 10:
+            damage = rules.dice.roll(weapon.damage_roll) + attacker.get_ability(weapon.attack_type)
 
             # multiply the result by the Attackers Aggression factor (round up)
             if attacker.aggro == "defensive":
@@ -362,7 +399,7 @@ class CombatHandler:
                         mapping={"target": target, "armor": target.armor},
                         from_obj=attacker,
                     )
-                    return
+                    return 0
 
             # apply the remainder to the Targets Health
             attacker.location.msg_contents(
@@ -373,11 +410,13 @@ class CombatHandler:
             target.at_damage(damage, attacker)
 
             return damage
-        else:
-            target.location.msg_contents(
-                "$You() $conj(dodge) the attack.",
-                from_obj=target,
-            )
+
+        target.location.msg_contents(
+            "$You() $conj(dodge) the attack.",
+            from_obj=target,
+        )
+
+        return 0
 
     def at_ranged_attack(self, attacker, target):
         """
@@ -385,56 +424,24 @@ class CombatHandler:
         All validations should be done before this method.
         """
 
-        blocked = False
-        parried = False
-        range_to_target = self.get_range(attacker, target)
         weapon = attacker.weapon
         min_damage = weapon.min_damage
         max_damage = weapon.max_damage
         stamina_cost = weapon.stamina_cost
         cooldown = weapon.cooldown
 
-        attacker_stamina_cost = self.rules.get_attack_stamina_cost(attacker, AttackType.RANGED, stamina_cost)
+        attacker_stamina_cost = self.rules.get_attack_stamina_cost(
+            attacker,
+            AttackType.RANGED,
+            stamina_cost
+        )
         attacker.spend_stamina(attacker_stamina_cost)
         attacker.cooldowns.add("attack", cooldown)
 
-        # Check to see if the target is using a shield
-        #   their Block zone matches the Attacker's target zone
-        if target.shield is not None:
-            blocked = True
+        if self._is_attack_blocked_or_parried(attacker, target, AttackType.RANGED):
+            return 0
 
-        # Check if target is wielding something that can parry,
-        #    and if their Parry zone matches the Attacker's target zone.
-        if target.weapon is not None and target.weapon.can_parry():
-            parried = True
-
-        if blocked or parried:
-            # See if target can defend
-            target_defense_stamina_cost = self.rules.get_defense_stamina_cost(
-                attacker,
-                AttackType.RANGED,
-                stamina_cost,
-                target
-            )
-            if target_defense_stamina_cost < target.stamina:
-                target.spend_stamina(target_defense_stamina_cost)
-                if range_to_target == CombatRange.MELEE:
-                    attacker.cooldowns.add("attack", cooldown + 1)
-                    target.add_buff("attack", 2, versus=attacker, duration=1)
-
-                if blocked:
-                    blocking_item = target.shield
-                else:
-                    blocking_item = target.weapon
-
-                target.location.msg_contents(
-                    "$You() $conj(block) the attack with $pron(your) {blocking_item}.",
-                    mapping={"blocking_item": blocking_item},
-                    from_obj=target,
-                )
-                return
-
-        attack_roll = self.rules.roll(attacker, target, "cunning")
+        attack_roll = rules.dice.roll("1d20") + attacker.get_ability(weapon.attack_type)
         target_size_penalty = 0
         if self.in_range(attacker, target, CombatRange.SHORT):
             range_penalty = 0
@@ -462,7 +469,7 @@ class CombatHandler:
                         mapping={"target": target, "armor": target.armor},
                         from_obj=attacker,
                     )
-                    return
+                    return 0
 
             # apply the remainder to the Targets Health
             attacker.location.msg_contents(
@@ -473,16 +480,20 @@ class CombatHandler:
             target.at_damage(damage, attacker)
 
             return damage
-        else:
-            target.location.msg_contents(
-                "$You() $conj(dodge) the attack.",
-                from_obj=target,
-            )
+
+        target.location.msg_contents(
+            "$You() $conj(dodge) the attack.",
+            from_obj=target,
+        )
+
+        return 0
 
     def at_thrown_attack(self, attacker, target):
-        blocked = False
-        parried = False
-        range_to_target = self.get_range(attacker, target)
+        """
+        Proceed with a thrown attack.
+        All validations should be done before this method.
+        """
+
         weapon = attacker.weapon
 
         if attacker.weapon.is_throwable is not None:
@@ -497,47 +508,18 @@ class CombatHandler:
             stamina_cost = weapon.stamina_cost
             cooldown = weapon.cooldown
 
-        attacker_stamina_cost = self.rules.get_attack_stamina_cost(attacker, AttackType.THROWN, stamina_cost)
+        attacker_stamina_cost = self.rules.get_attack_stamina_cost(
+            attacker,
+            AttackType.THROWN,
+            stamina_cost
+        )
         attacker.spend_stamina(attacker_stamina_cost)
         attacker.cooldowns.add("attack", cooldown)
 
-        # Check to see if the target is using a shield
-        #   their Block zone matches the Attacker's target zone
-        if target.shield is not None:
-            blocked = True
+        if self._is_attack_blocked_or_parried(attacker, target, AttackType.THROWN):
+            return 0
 
-        # Check if target is wielding something that can parry,
-        #    and if their Parry zone matches the Attacker's target zone.
-        if target.weapon is not None and target.weapon.can_parry():
-            parried = True
-
-        if blocked or parried:
-            # See if target can defend
-            target_defense_stamina_cost = self.rules.get_defense_stamina_cost(
-                attacker,
-                AttackType.THROWN,
-                stamina_cost,
-                target
-            )
-            if target_defense_stamina_cost < target.stamina:
-                target.spend_stamina(target_defense_stamina_cost)
-                if range_to_target == CombatRange.MELEE:
-                    attacker.cooldowns.add("attack", cooldown + 1)
-                    target.add_buff("attack", 2, versus=attacker, duration=1)
-
-                if blocked:
-                    blocking_item = target.shield
-                else:
-                    blocking_item = target.weapon
-
-                target.location.msg_contents(
-                    "$You() $conj(block) the attack with $pron(your) {blocking_item}.",
-                    mapping={"blocking_item": blocking_item},
-                    from_obj=target,
-                )
-                return
-
-        attack_roll = self.rules.roll(attacker, target, "cunning")
+        attack_roll = rules.dice.roll("1d20") + attacker.get_ability(weapon.attack_type)
         target_size_penalty = 0
         if self.in_range(attacker, target, CombatRange.SHORT):
             range_penalty = 0
@@ -565,7 +547,7 @@ class CombatHandler:
                         mapping={"target": target, "armor": target.armor},
                         from_obj=attacker,
                     )
-                    return
+                    return 0
 
             # apply the remainder to the Targets Health
             attacker.location.msg_contents(
@@ -576,8 +558,9 @@ class CombatHandler:
             target.at_damage(damage, attacker)
 
             return damage
-        else:
-            target.location.msg_contents(
-                "$You() $conj(dodge) the attack.",
-                from_obj=target,
-            )
+
+        target.location.msg_contents(
+            "$You() $conj(dodge) the attack.",
+            from_obj=target,
+        )
+        return 0

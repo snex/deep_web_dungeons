@@ -1,20 +1,23 @@
+"""
+Place for game-wide enums.
+"""
+
 from enum import IntEnum, Enum
 
 
-class Ability(Enum):
-    STR = "strength"
-    CUN = "cunning"
-    WIL = "will"
-
-    ARMOR = "armor"
-
+class Criticals(Enum):
+    """ Critical success and failure. """
     CRITICAL_FAILURE = "critical_failure"
     CRITICAL_SUCCESS = "critical_success"
 
-    ALLEGIANCE_HOSTILE = "hostile"
-    ALLEGIANCE_NEUTRAL = "neutral"
-    ALLEGIANCE_FRIENDLY = "friendly"
+class Ability(Enum):
+    """
+    Ability stats.
+    """
 
+    STR = "strength"
+    CUN = "cunning"
+    WIL = "will"
 
 class WieldLocation(Enum):
     """
@@ -47,6 +50,14 @@ class ObjType(Enum):
     QUEST = "quest"
     TREASURE = "treasure"
 
+class Allegiance(Enum):
+    """
+    Allegiance flags.
+    """
+
+    ALLEGIANCE_HOSTILE = "hostile"
+    ALLEGIANCE_NEUTRAL = "neutral"
+    ALLEGIANCE_FRIENDLY = "friendly"
 
 class CombatRange(IntEnum):
     """
@@ -60,7 +71,34 @@ class CombatRange(IntEnum):
 
 
 class AttackType(IntEnum):
+    """
+    Attack types.
+    """
     MELEE = 1
     RANGED = 2
     THROWN = 3
     MAGIC = 4
+
+
+class DefenseType(Enum):
+    """
+    Defense types.
+    """
+    STR = "strength"
+    CUN = "cunning"
+    WIL = "will"
+    ARMOR = "armor"
+
+class CardinalDirections(Enum):
+    """
+    Cardinal directions on the compass.
+    """
+
+    NORTH = "north"
+    NORTHEAST = "northeast"
+    EAST = "east"
+    SOUTHEAST = "southeast"
+    SOUTH = "south"
+    SOUTHWEST = "southwest"
+    WEST = "west"
+    NORTHWEST = "northwest"

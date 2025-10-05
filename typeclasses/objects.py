@@ -3,31 +3,17 @@ Object
 
 The Object is the base class for things in the game world.
 
-Note that the default Character, Room and Exit do not inherit from Object,
-but do inherit from the provided mixin ObjectParent by default.
-
+Note that the default Character, Room and Exit do not inherit from Object.
 """
+
 from evennia import AttributeProperty
 from evennia.objects.objects import DefaultObject
 from evennia.utils.utils import make_iter
 
-from world.enums import Ability, CombatRange, ObjType, WieldLocation, AttackType
+from world.enums import Ability, CombatRange, ObjType, WieldLocation, AttackType, DefenseType
 from world.utils import get_obj_stats
 
-
-class ObjectParent:
-    """
-    This is a mixin that can be used to override *all* entities inheriting at
-    some distance from DefaultObject (Objects, Exits, Characters and Rooms).
-
-    Just add any method that exists on `DefaultObject` to this class. If one
-    of the derived classes has itself defined that same hook already, that will
-    take precedence.
-
-    """
-
-
-class Object(ObjectParent, DefaultObject):
+class Object(DefaultObject):
     """
     Base in-game entity.
 
@@ -130,7 +116,6 @@ class ConsumableObject(Object):
             *args, **kwargs: Extra arguments depending on the usage and item.
 
         """
-        pass
 
     def at_post_use(self, user, *args, **kwargs):
         """
@@ -176,13 +161,22 @@ class WeaponObject(Object):
     attack_range: CombatRange = AttributeProperty(CombatRange.MELEE)
     attack_type: AttackType = AttributeProperty(AttackType.MELEE)
     # what defense stat of the enemy it must defeat
-    defense_type: Ability = AttributeProperty(Ability.ARMOR)
+    defense_type: Ability = AttributeProperty(DefenseType.ARMOR)
 
     min_damage: int = AttributeProperty(1)
     max_damage: int = AttributeProperty(4)
     stamina_cost: int = AttributeProperty(2)
     cooldown: int = AttributeProperty(2)
 
+class WeaponBareHands(WeaponObject):
+    """
+    Special class for bare hands when no weapon is wielded.
+    """
+    obj_type = ObjType.WEAPON
+    inventory_use_slot = WieldLocation.WEAPON_HAND
+    attack_type = Ability.STR
+    defense_type = DefenseType.ARMOR
+    damage_roll = "1d4"
 
 class Runestone(WeaponObject, ConsumableObject):
     """
@@ -202,12 +196,11 @@ class Runestone(WeaponObject, ConsumableObject):
     damage_roll = AttributeProperty("1d8")
 
     def at_post_use(self, user, *args, **kwargs):
-        """Called after the spell was cast"""
+        """ Called after the spell was cast. """
         self.uses -= 1
-        # the rune stone is not deleted after use, but
-        # it needs to be refreshed after resting.
 
     def refresh(self):
+        """ Reset the runestone after it was used. """
         self.uses = 1
 
 

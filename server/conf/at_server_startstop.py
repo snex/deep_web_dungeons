@@ -31,10 +31,7 @@ def at_server_start():
     This is called every time the server starts up, regardless of
     how it was shut down.
     """
-    logger.info("Preparing overworld script...")
-    from world.overworld import Overworld
-    overworld = Overworld.get_instance()
-    overworld.start()
+    pass
 
 def at_server_stop():
     """

@@ -3,7 +3,6 @@ EvAdventure character generation.
 
 """
 import random
-import world.common.item_prototypes
 
 from django.conf import settings
 
@@ -13,7 +12,6 @@ from evennia.objects.models import ObjectDB
 from evennia.prototypes.spawner import spawn
 from evennia.utils.evmenu import EvMenu
 from evennia.utils.logger import log_err
-from random import choice
 from typeclasses.characters import Character
 from world.characters.classes import CharacterClasses, CharacterClass
 from world.characters.races import Races, Race
@@ -58,7 +56,7 @@ class TemporaryCharacterSheet:
         return stats
 
     def _random_gender(self):
-        return choice(["male", "female"])
+        return random.choice(["male", "female"])
 
     def _random_class(self) -> CharacterClass:
         return random.choice(_SORTED_CLASSES)
@@ -67,6 +65,7 @@ class TemporaryCharacterSheet:
         return random.choice(_SORTED_RACES)
 
     def swap_race(self, new_race: Race):
+        """ Swap current race with player's chosen race. """
         # Remove previous modifiers
         self.strength -= self.race.strength_mod
         self.will -= self.race.will_mod
@@ -106,7 +105,8 @@ class TemporaryCharacterSheet:
         self.speech = dice.roll_random_table("1d20", chargen_tables["speech"])
 
         self.desc = (
-            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face, {self.skin} skin, {self.hair} hair, {self.speech} speech, and"
+            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face,"
+            f" {self.skin} skin, {self.hair} hair, {self.speech} speech and"
             f" {self.clothing} clothing."
         )
 
@@ -151,6 +151,51 @@ class TemporaryCharacterSheet:
             equipment=", ".join((str(eq) for eq in equipment)),
         )
 
+    def _add_gear_to_new_character(self, new_character):
+        if self.weapon:
+            try:
+                weapon = spawn(self.weapon)
+                new_character.equipment.move(weapon[0])
+            except KeyError:
+                logger.log_err(
+                    f"[Chargen] Could not spawn Weapon: Prototype not found for '{self.weapon}'."
+                )
+
+        if self.armor:
+            try:
+                armor = spawn(self.armor)
+                new_character.equipment.move(armor[0])
+            except KeyError:
+                logger.log_err(
+                    f"[Chargen] Could not spawn Armor: Prototype not found for '{self.armor}'."
+                )
+
+        if self.shield:
+            try:
+                shield = spawn(self.shield)
+                new_character.equipment.move(shield[0])
+            except KeyError:
+                logger.log_err(
+                    f"[Chargen] Could not spawn Shield: Prototype not found for '{self.shield}'."
+                )
+
+        if self.helmet:
+            try:
+                helmet = spawn(self.helmet)
+                new_character.equipment.move(helmet[0])
+            except KeyError:
+                logger.log_err(
+                    f"[Chargen] Could not spawn Helmet: Prototype not found for '{self.helmet}'."
+                )
+
+        for item in self.backpack:
+            try:
+                item = spawn(item)
+                new_character.equipment.move(item[0])
+            except KeyError:
+                logger.log_err(f"[Chargen] Could not spawn Item: Prototype not found for '{item}'.")
+
+
     def apply(self, account):
         """
         Once the chargen is complete, call this create and set up the character.
@@ -159,7 +204,8 @@ class TemporaryCharacterSheet:
         grid = get_xyzgrid()
         start_location = grid.get_room(('12', '6', 'riverport'))
         if start_location:
-            start_location = start_location[0] # The room we got above is a queryset so we get it by index
+            # The room we got above is a queryset so we get it by index
+            start_location = start_location[0]
         else:
             start_location = ObjectDB.objects.get_id(settings.START_LOCATION)
 
@@ -168,7 +214,8 @@ class TemporaryCharacterSheet:
 
         # set the desc a final time to get the right details!
         self.desc = (
-            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face, {self.skin} skin, {self.hair} hair, {self.speech} speech, and"
+            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face,"
+            f" {self.skin} skin, {self.hair} hair, {self.speech} speech, and"
             f" {self.clothing} clothing."
         )
 
@@ -199,52 +246,18 @@ class TemporaryCharacterSheet:
             log_err(f"Error during character creation: #{err}")
 
         new_character.locks.add(
-            "puppet:id(%i) or pid(%i) or perm(Developer) or pperm(Developer);delete:id(%i) or"
-            " perm(Admin)" % (new_character.id, account.id, account.id)
+            f"puppet:id({new_character.id}) or pid({account.id}) or perm(Developer) or"
+            " pperm(Developer);delete:id({account.id}) or"
+            " perm(Admin)"
         )
-        # spawn equipment
-        # TODO: add item prototypes
-        # none of the equipment from the random tables have prototypes, so there is no starting gear
-        if self.weapon:
-            try:
-                weapon = spawn(self.weapon)
-                new_character.equipment.move(weapon[0])
-            except KeyError:
-                logger.log_err(f"[Chargen] Could not spawn Weapon: Prototype not found for '{self.weapon}'.")
 
-        if self.armor:
-            try:
-                armor = spawn(self.armor)
-                new_character.equipment.move(armor[0])
-            except KeyError:
-                logger.log_err(f"[Chargen] Could not spawn Armor: Prototype not found for '{self.armor}'.")
-
-        if self.shield:
-            try:
-                shield = spawn(self.shield)
-                new_character.equipment.move(shield[0])
-            except KeyError:
-                logger.log_err(f"[Chargen] Could not spawn Shield: Prototype not found for '{self.shield}'.")
-
-        if self.helmet:
-            try:
-                helmet = spawn(self.helmet)
-                new_character.equipment.move(helmet[0])
-            except KeyError:
-                logger.log_err(f"[Chargen] Could not spawn Helmet: Prototype not found for '{self.helmet}'.")
-
-        for item in self.backpack:
-            try:
-                item = spawn(item)
-                new_character.equipment.move(item[0])
-            except KeyError:
-                logger.log_err(f"[Chargen] Could not spawn Item: Prototype not found for '{item}'.")
+        self._add_gear_to_new_character(new_character)
 
         return new_character
 
 
 # chargen menu
-def node_chargen(caller, raw_string, **kwargs):
+def node_chargen(_caller, raw_string, **kwargs):
     """
     This node is the central point of chargen. We return here to see our current
     sheet and break off to edit different parts of it.
@@ -262,7 +275,7 @@ def node_chargen(caller, raw_string, **kwargs):
     return text, options
 
 
-def _update_name(caller, raw_string, **kwargs):
+def _update_name(_caller, raw_string, **kwargs):
     """
     Used by node_change_name below to check what user entered and update the name if appropriate.
 
@@ -275,7 +288,7 @@ def _update_name(caller, raw_string, **kwargs):
     return "node_chargen", kwargs
 
 
-def node_change_name(caller, raw_string, **kwargs):
+def node_change_name(_caller, raw_string, **kwargs):
     """
     Change the random name of the character.
 
@@ -336,7 +349,7 @@ def start_chargen(caller, session=None):
         startnode_input=("sgsg", {"tmp_character": tmp_character}),
     )
 
-def node_show_genders(caller, raw_string, **kwargs):
+def node_show_genders(_caller, raw_string, **kwargs):
     """Let user select a gender"""
     text = """\
         Select a |cGender|n.
@@ -360,13 +373,14 @@ def node_show_genders(caller, raw_string, **kwargs):
     return (text, ""), options
 
 def node_apply_gender(caller, raw_string, **kwargs):
+    """ Apply the selected gender. """
     gender = kwargs.get('gender')
     tmp_character = kwargs["tmp_character"]
     tmp_character.gender = gender
 
     return node_chargen(caller, '', tmp_character=tmp_character)
 
-def node_show_classes(caller, raw_string, **kwargs):
+def node_show_classes(_caller, raw_string, **kwargs):
     """Starting page and Class listing."""
     text = """\
         Select a |cClass|n.
@@ -377,7 +391,7 @@ def node_show_classes(caller, raw_string, **kwargs):
 
     options = [
         {
-            "desc": "|c{}|n".format(cclass.name),
+            "desc": f"|c{cclass.name}|n",
             "goto": ("node_select_class", {"cclass": cclass, **kwargs}),
         }
         for cclass in _SORTED_CLASSES
@@ -396,8 +410,8 @@ def node_select_class(caller, raw_string, **kwargs):
         return None
 
     text = cclass.desc + "\nWould you like to become this class?"
-    help = "Examine the properties of this class and decide whether\n"
-    help += "to use its starting attributes for your character."
+    help_text = "Examine the properties of this class and decide whether\n"
+    help_text += "to use its starting attributes for your character."
     options = (
         {
             "key": ("Yes", "ye", "y"),
@@ -410,10 +424,11 @@ def node_select_class(caller, raw_string, **kwargs):
             "goto": "node_show_classes"
         }
     )
-    return (text, help), options
+    return (text, help_text), options
 
 
 def node_apply_class(caller, raw_string, **kwargs):
+    """ Apply the selected class. """
     cclass = kwargs.get('cclass')
     tmp_character = kwargs["tmp_character"]
     tmp_character.cclass = cclass
@@ -421,7 +436,7 @@ def node_apply_class(caller, raw_string, **kwargs):
     return node_chargen(caller, '', tmp_character=tmp_character)
 
 
-def node_show_races(caller, raw_string, **kwargs):
+def node_show_races(_caller, raw_string, **kwargs):
     """Starting page and Class listing."""
     text = """\
         Select a |cRace|n.
@@ -432,7 +447,7 @@ def node_show_races(caller, raw_string, **kwargs):
 
     options = [
         {
-            "desc": "|c{}|n".format(race.name),
+            "desc": f"|c{race.name}|n",
             "goto": ("node_select_race", {"race": race, **kwargs}),
         }
         for race in _SORTED_RACES
@@ -451,8 +466,8 @@ def node_select_race(caller, raw_string, **kwargs):
         return None
 
     text = race.desc + "\nWould you like to become this race?"
-    help = "Examine the properties of this race and decide whether\n"
-    help += "to use its starting attributes for your character."
+    help_text = "Examine the properties of this race and decide whether\n"
+    help_text += "to use its starting attributes for your character."
     options = (
         {
             "key": ("Yes", "ye", "y"),
@@ -466,10 +481,11 @@ def node_select_race(caller, raw_string, **kwargs):
         }
     )
 
-    return (text, help), options
+    return (text, help_text), options
 
 
 def node_apply_race(caller, raw_string, **kwargs):
+    """ Apply the selected race. """
     race = kwargs.get('race')
     tmp_character = kwargs["tmp_character"]
     tmp_character.swap_race(race)

@@ -169,7 +169,7 @@ class CmdHit(CombatCommand):
             caller.msg("You are not in combat!")
             return
 
-        if not combat.rules.validate_weapon_attack(caller, target, caller.weapon):
+        if not combat.rules.validate_weapon_attack(caller, target):
             return
 
         hittable = combat.in_range(caller, target, CombatRange.MELEE)
@@ -205,7 +205,7 @@ class CmdShoot(CombatCommand):
             caller.msg("You are not in combat!")
             return
 
-        if not combat.rules.validate_weapon_attack(caller, target, caller.weapon):
+        if not combat.rules.validate_weapon_attack(caller, target):
             return
 
         combat.at_ranged_attack(caller, target)

@@ -1,3 +1,7 @@
+"""
+Handle all character level ups.
+"""
+
 import random
 from typing import TYPE_CHECKING
 
@@ -20,6 +24,10 @@ class _NextLevelXp:
 
 
 class LevelsHandler:
+    """
+    Class to handle character level ups.
+    """
+
     __slots__ = ('obj',)
 
     _ATTRIBUTE_CATEGORY = "levels"
@@ -50,6 +58,7 @@ class LevelsHandler:
 
     @property
     def xp(self) -> int:
+        """ Current XP of the character. """
         return self.obj.attributes.get("xp", category=self._ATTRIBUTE_CATEGORY)
 
     @xp.setter
@@ -58,6 +67,7 @@ class LevelsHandler:
 
     @property
     def level(self) -> int:
+        """ Current level of the character. """
         return self.obj.attributes.get("level", category=self._ATTRIBUTE_CATEGORY)
 
     @level.setter
@@ -92,63 +102,91 @@ class LevelsHandler:
         else:
             self.xp = new_xp
 
-    def at_level_up(self):
-        new_level = self.level + 1
-        self.level = new_level
+    def _level_hp(self):
+        min_hp, max_hp = (1, 6)
+        if cclass := self.obj.cclass:
+            min_hp, max_hp = cclass.health_dice
 
+        is_pc = self.obj.is_pc
+        if is_pc:
+            added_hp = max_hp
+        else:
+            added_hp = random.randint(min_hp, max_hp)
+
+        self.obj.hp_max += added_hp
+
+        # We add the new health directly unless the character is dead or dying.
+        if self.obj.hp > 0:
+            self.obj.hp += added_hp
+
+    def _level_mana(self):
+        min_mana, max_mana = (1, 6)
+        if cclass := self.obj.cclass:
+            min_mana, max_mana = cclass.mana_dice
+
+        is_pc = self.obj.is_pc
+        if is_pc:
+            added_mana = max_mana
+        else:
+            added_mana = random.randint(min_mana, max_mana)
+
+        self.obj.mana_max += added_mana
+        self.obj.mana += added_mana
+
+    def _level_stamina(self):
+        min_stamina, max_stamina = (1, 6)
+        if cclass := self.obj.cclass:
+            min_stamina, max_stamina = cclass.stamina_dice
+
+        is_pc = self.obj.is_pc
+        if is_pc:
+            added_stamina = max_stamina
+        else:
+            added_stamina = random.randint(min_stamina, max_stamina)
+
+        self.obj.stamina_max += added_stamina
+        self.obj.stamina += added_stamina
+
+    def _level_stats(self):
         # By default, we use the lowest values, useful when generating mobs
         stats = {
             "strength": "tertiary",
             "cunning": "tertiary",
             "will": "tertiary"
         }
-        min_hp, max_hp = (1, 6)
-        min_mana, max_mana = (1, 6)
 
         # Get the adjustments based on the character class
         if cclass := self.obj.cclass:
-            min_hp, max_hp = cclass.health_dice
-            min_mana, max_mana = cclass.mana_dice
             stats[cclass.primary_stat] = "primary"
             stats[cclass.secondary_stat] = "secondary"
 
-        is_pc = self.obj.is_pc
-        if is_pc:
-            # Players always get the maximum possible health and mana
-            added_hp = max_hp
-            added_mana = max_mana
-        else:
-            added_hp = random.randint(min_hp, max_hp)
-            added_mana = random.randint(min_mana, max_mana)
-
-        self.obj.hp_max += added_hp
-        self.obj.mana_max += added_mana
-
-        # We add the new health directly unless the character is dead or dying.
-        if self.obj.hp > 0:
-            self.obj.hp += added_hp
-
-        self.obj.mana += added_mana
-
         # We increase the stat when a threshold is reached
         added_stats = set()
-        for stat, stat_focus in stats.values():
+        for stat, stat_focus in stats.items():
             levels_for_stat = self._LEVELS_FOR_STATS[stat_focus]
-            if new_level % levels_for_stat != 0:
+            if self.level % levels_for_stat != 0:
                 continue
 
             stat_value = getattr(self.obj, stat, 1)
             setattr(self.obj, stat, stat_value + 1)
             added_stats.add(stat)
 
+    def at_level_up(self):
+        """
+        Called when a character levels up
+        """
+        self.level = self.level + 1
+
+        self._level_hp()
+        self._level_mana()
+        self._level_stamina()
+        self._level_stats()
+
         # Send the player a nice message.
+        is_pc = self.obj.is_pc
         if is_pc:
-            hp_gain_str = f"{added_hp} hp" if added_hp else ""
-            mana_gain_str = f"{added_hp} mana" if added_mana else ""
-            stat_gain_str = ",".join(f"1 {stat}" for stat in added_stats)
             msg = (
-                f"|wYou level up!\n"
-                f"You gain {hp_gain_str}{mana_gain_str}{stat_gain_str}!|n"
+                "|wYou feel more powerful!\n"
             )
             self.obj.msg(msg)
 

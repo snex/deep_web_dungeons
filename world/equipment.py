@@ -3,15 +3,14 @@ Knave has a system of Slots for its inventory.
 
 """
 
+from evennia import search_object, create_object
 from evennia.utils.utils import inherits_from
+from typeclasses.objects import Object, WeaponBareHands
 
 from .enums import Ability, WieldLocation
-from typeclasses.objects import Object
-
 
 class EquipmentError(TypeError):
-    pass
-
+    """ Error class to categorize errors thrown from here. """
 
 class EquipmentHandler:
     """
@@ -126,6 +125,8 @@ class EquipmentHandler:
             if obj == equipment_item:
                 return slot
 
+        return None
+
     @property
     def armor(self):
         """
@@ -152,6 +153,18 @@ class EquipmentHandler:
             )
         )
 
+    def _get_bare_hands(self):
+        """
+        Get the bare hands weapon, using a universal db object.
+        """
+
+        bare_hands= search_object("Bare Hands", typeclass=WeaponBareHands).first()
+
+        if not bare_hands:
+            bare_hands = create_object(WeaponBareHands, key="Bare Hands")
+
+        return bare_hands
+
     @property
     def weapon(self):
         """
@@ -167,11 +180,14 @@ class EquipmentHandler:
         weapon = slots[WieldLocation.TWO_HANDS]
         if not weapon:
             weapon = slots[WieldLocation.WEAPON_HAND]
+        if not weapon:
+            weapon = self._get_bare_hands()
 
         return weapon
 
     @property
     def shield(self):
+        """ Return the currently active shield. """
         return self.slots[WieldLocation.SHIELD_HAND]
 
     def display_loadout(self):
@@ -419,4 +435,4 @@ class EquipmentHandler:
             # remove any None-results from empty slots
             return [tup[0] for tup in lst if tup[0]]
         # keep empty slots
-        return [tup for tup in lst]
+        return list(lst)

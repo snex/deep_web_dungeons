@@ -5,22 +5,22 @@ Typeclasses defining NPCs. This includes both friends and enemies, only separate
 from random import choice, random, randrange
 
 from evennia.typeclasses.attributes import AttributeProperty
-from evennia.utils.evmenu import EvMenu
 from evennia.utils.utils import inherits_from, make_iter, repeat, unrepeat
-from world.combat import CombatHandler
 from world.common.dialog.insults import Insult
-from world.enums import Ability
+from world.enums import Allegiance, CardinalDirections
 from .characters import BaseCharacter, Character
 
-import subprocess
-
 class NPC(BaseCharacter):
+    """
+    Base class for all NPCs.
+    """
+
     is_pc = False
 
     desc = AttributeProperty(default="This is a character.", autocreate=False)
     armor = AttributeProperty(default=1, autocreate=False)  # +10 to get armor defense
     morale = AttributeProperty(default=9, autocreate=False)
-    allegiance = AttributeProperty(default=Ability.ALLEGIANCE_HOSTILE, autocreate=False)
+    allegiance = AttributeProperty(default=Allegiance.ALLEGIANCE_HOSTILE, autocreate=False)
 
     is_idle = AttributeProperty(default=False, autocreate=False)
 
@@ -36,16 +36,11 @@ class NPC(BaseCharacter):
         self.mana = self.mana_max
         self.stamina = self.stamina_max
 
-    def ai_combat_next_action(self):
-        """
-        The combat engine should ask this method in order to
-        get the next action the npc should perform in combat.
-
-        """
-        pass
-
     def _do_wander(self, allowed_directions):
-        candidates = [direction.key for direction in self.location.exits if direction.key in allowed_directions]
+        candidates = [
+            direction.key for direction in self.location.exits
+            if direction.key in allowed_directions
+        ]
         wander_dir = choice(candidates)
         self.execute_cmd(wander_dir)
 
@@ -53,8 +48,6 @@ class WanderingNPC(NPC):
     """
     Wandering NPCs will wander around randomly."
     """
-
-    _ALLOWED_DIRECTIONS = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest']
 
     wander_timer = AttributeProperty(default=None, autocreate=False)
     wander_rate = AttributeProperty(randrange(30, 120), autocreate=False)
@@ -69,15 +62,14 @@ class WanderingNPC(NPC):
         return True
 
     def wander(self):
+        """ Roll to see if the NPC should wander, then wander if so. """
         if random() < self.wander_chance:
-            self._do_wander(self._ALLOWED_DIRECTIONS)
+            self._do_wander(CardinalDirections)
 
 class InsultNPC(NPC):
     """
     Insult NPCs will wander around and insult any players they see.
     """
-
-    _ALLOWED_DIRECTIONS = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest']
 
     insult_timer = AttributeProperty(default=None, autocreate=False)
     insult_rate = AttributeProperty(randrange(30, 120), autocreate=False)
@@ -94,10 +86,10 @@ class InsultNPC(NPC):
     def _say_insult(self, target):
         insult = Insult(target.key, target.gender).generate_insult()
         self.execute_cmd(f"say |w{insult}|n")
-        self._do_wander(self._ALLOWED_DIRECTIONS)
+        self._do_wander(CardinalDirections)
 
     def at_talk(self, talker):
-        pcs = [obj for obj in self.location.contents if inherits_from(obj, Character)]
+        """ When talked to, say an insult. """
         self._say_insult(talker)
 
     def at_damage(self, damage, attacker=None):
@@ -112,6 +104,7 @@ class InsultNPC(NPC):
         self._say_insult(attacker)
 
     def insult(self):
+        """ Roll to see if the NPC should say an insult, then say it if so. """
         if random() < self.insult_chance:
             pcs = [obj for obj in self.location.contents if inherits_from(obj, Character)]
             if pcs:
@@ -127,8 +120,8 @@ class TalkativeNPC(NPC):
 
     """
 
-    menudata = AttributeProperty(dict(), autocreate=False)
-    menu_kwargs = AttributeProperty(dict(), autocreate=False)
+    menudata = AttributeProperty({}, autocreate=False)
+    menu_kwargs = AttributeProperty({}, autocreate=False)
     # text shown when greeting at the start of a conversation. If this is an
     # iterable, a random reply will be chosen by the menu
     hi_text = AttributeProperty("Hi!", autocreate=False)
@@ -143,7 +136,7 @@ class TalkativeNPC(NPC):
             self.combat.end_combat()
 
     @classmethod
-    def create(cls, key, account=None, **kwargs):
+    def create(cls, key, account=None, caller=None, method="create", **kwargs):
         """
         Overriding the creation of the NPC, allowing some extra `**kwargs`.
 
@@ -177,7 +170,7 @@ class TalkativeNPC(NPC):
 
         return new_object, errors
 
-    def at_talk(self, talker, startnode="node_start", session=None, **kwargs):
+    def at_talk(self, talker, _startnode="node_start", _session=None, **kwargs):
         """
         Called by the `talk` command when another entity addresses us.
 
@@ -198,7 +191,13 @@ class TalkativeNPC(NPC):
         talker.msg("He has nothing to say.")
         # make this work!
         # menu_kwargs = {**self.menu_kwargs, **kwargs}
-        # EvMenu(talker, self.menudata, startnode=startnode, session=session, npc=self, **menu_kwargs)
+        # EvMenu(
+        #     talker,
+        #     self.menudata,
+        #     startnode=startnode,
+        #     session=session, npc=self,
+        #     **menu_kwargs
+        # )
 
 
 def node_start(caller, raw_string, **kwargs):

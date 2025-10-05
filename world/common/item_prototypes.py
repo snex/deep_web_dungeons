@@ -1,4 +1,4 @@
-from world.enums import WieldLocation, CombatRange, Ability
+from world.enums import WieldLocation, CombatRange, Ability, DefenseType
 
 BASE_WEAPON = {
     "prototype_key": "base_weapon",
@@ -11,7 +11,7 @@ BASE_WEAPON_MELEE = {
     "prototype_parent": "base_weapon",
     "prototype_key": "base_weapon_melee",
     "attack_range": CombatRange.MELEE,
-    "defense_type": Ability.ARMOR,
+    "defense_type": DefenseType.ARMOR,
 }
 
 WEAPON_DAGGER_COMMON = {

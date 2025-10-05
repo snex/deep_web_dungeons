@@ -58,7 +58,7 @@ ignore-patterns = ^\\.#
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-# init-hook =
+init-hook = import sys;sys.path.append("")
 
 # Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
 # number of processors available to use, and will cap the count on Windows to
@@ -235,7 +235,7 @@ defining-attr-methods = __init__,__new__,setUp,asyncSetUp,__post_init__
 
 # List of member names, which should be excluded from the protected access
 # warning.
-exclude-protected = _asdict,_fields,_replace,_source,_make,os._exit
+exclude-protected = _asdict,_fields,_replace,_source,_make,os._exit,_evmenu,_session,_playable_characters,_menutree
 
 # List of valid names for the first argument in a class method.
 valid-classmethod-first-arg = cls
@@ -267,7 +267,7 @@ max-branches = 12
 max-locals = 15
 
 # Maximum number of parents for a class (see R0901).
-max-parents = 7
+max-parents = 15
 
 # Maximum number of positional arguments for function / method.
 max-positional-arguments = 5
@@ -373,7 +373,7 @@ confidence = HIGH,CONTROL_FLOW,INFERENCE,INFERENCE_FAILURE,UNDEFINED
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
-disable = raw-checker-failed,bad-inline-option,locally-disabled,file-ignored,suppressed-message,useless-suppression,deprecated-pragma,use-symbolic-message-instead,use-implicit-booleaness-not-comparison-to-string,use-implicit-booleaness-not-comparison-to-zero,not-callable
+disable = raw-checker-failed,bad-inline-option,locally-disabled,file-ignored,suppressed-message,useless-suppression,deprecated-pragma,use-symbolic-message-instead,use-implicit-booleaness-not-comparison-to-string,use-implicit-booleaness-not-comparison-to-zero,not-callable,fixme
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

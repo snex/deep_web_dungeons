@@ -8,24 +8,21 @@ creation commands.
 
 """
 
+from typing import TYPE_CHECKING
+
 from evennia.contrib.game_systems.cooldowns import CooldownHandler
 from evennia.objects.objects import DefaultCharacter
 from evennia.typeclasses.attributes import AttributeProperty, NAttributeProperty
-from evennia.utils.evform import EvForm
-from evennia.utils.evtable import EvTable
 from evennia.utils.logger import log_err, log_trace
 from evennia.utils.utils import inherits_from, lazy_property
 from world import rules
 from world.buffs import AbstractBuffHandler
 from world.characters.classes import CharacterClasses, CharacterClass
 from world.characters.races import Races, Race
-
+from world.enums import Ability
 from world.equipment import EquipmentError, EquipmentHandler
 from world.levelling import LevelsHandler
 from world.quests import QuestHandler
-from .objects import ObjectParent
-
-from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -35,7 +32,8 @@ if TYPE_CHECKING:
 # from world.utils import get_obj_stats
 
 
-class BaseCharacter(ObjectParent, DefaultCharacter):
+class BaseCharacter(DefaultCharacter):
+    """ Base character is used for all characters, including PCs and NPCs. """
     is_pc = False
 
     hp = AttributeProperty(default=1)
@@ -53,10 +51,24 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
     cclass_key = AttributeProperty()
     race_key = AttributeProperty()
 
+    coins = AttributeProperty(default=0)  # copper coins
     aggro = AttributeProperty(default="n")  # Defensive, Normal, or Aggressive (d/n/a)
+
+    def get_ability(self, ability):
+        """ Return the ability score of the ability supplied. """
+        if ability not in Ability:
+            raise TypeError(f"Invalid ability: {ability}")
+
+        if ability == Ability.STR:
+            return self.db.strength
+        if ability == Ability.CUN:
+            return self.db.cunning
+
+        return self.db.will
 
     @property
     def cclass(self) -> CharacterClass | None:
+        """ Return character's CharacterClass. """
         cclass = self.ndb.cclass
         if cclass is None:
             cclass = CharacterClasses.get(self.db.cclass_key)
@@ -66,6 +78,7 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
 
     @property
     def combat(self) -> 'CombatHandler | None':
+        """ Return CombastHandler instance. """
         return self.ndb.combat
 
     @combat.setter
@@ -75,6 +88,7 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
 
     @property
     def race(self) -> Race:
+        """ Return character's race. """
         race = self.ndb.race
         if race is None:
             race = Races.get(self.db.race_key)
@@ -84,6 +98,7 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
 
     @lazy_property
     def cooldowns(self):
+        """ Return CooldownHandler instance. """
         return CooldownHandler(self)
 
     @property
@@ -94,20 +109,20 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         percent = max(0, min(100, 100 * (self.hp / self.hp_max)))
         if 95 < percent <= 100:
             return "|gPerfect|n"
-        elif 80 < percent <= 95:
+        if 80 < percent <= 95:
             return "|gScraped|n"
-        elif 60 < percent <= 80:
+        if 60 < percent <= 80:
             return "|GBruised|n"
-        elif 45 < percent <= 60:
+        if 45 < percent <= 60:
             return "|yHurt|n"
-        elif 30 < percent <= 45:
+        if 30 < percent <= 45:
             return "|yWounded|n"
-        elif 15 < percent <= 30:
+        if 15 < percent <= 30:
             return "|rBadly Wounded|n"
-        elif 1 < percent <= 15:
+        if 1 < percent <= 15:
             return "|rBarely Hanging On|n"
-        elif percent == 0:
-            return "|RCollapsed!|n"
+
+        return "|RCollapsed!|n"
 
     @property
     def mana_level(self):
@@ -117,20 +132,20 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         percent = max(0, min(100, 100 * (self.mana / self.mana_max)))
         if 95 < percent <= 100:
             return "|gPerfect|n"
-        elif 80 < percent <= 95:
+        if 80 < percent <= 95:
             return "|gWell Studied|n"
-        elif 60 < percent <= 80:
+        if 60 < percent <= 80:
             return "|GStudied|n"
-        elif 45 < percent <= 60:
+        if 45 < percent <= 60:
             return "|yLosing Concentration|n"
-        elif 30 < percent <= 45:
+        if 30 < percent <= 45:
             return "|ySlightly Drained|n"
-        elif 15 < percent <= 30:
+        if 15 < percent <= 30:
             return "|rDrained|n"
-        elif 1 < percent <= 15:
+        if 1 < percent <= 15:
             return "|rBarely Hanging On|n"
-        elif percent == 0:
-            return "|REmpty!|n"
+
+        return "|REmpty!|n"
 
     @property
     def stamina_level(self):
@@ -140,20 +155,20 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         percent = max(0, min(100, 100 * (self.stamina / self.stamina_max)))
         if 95 < percent <= 100:
             return "|gPerfect|n"
-        elif 80 < percent <= 95:
+        if 80 < percent <= 95:
             return "|gLight Sweat|n"
-        elif 60 < percent <= 80:
+        if 60 < percent <= 80:
             return "|GSweaty|n"
-        elif 45 < percent <= 60:
+        if 45 < percent <= 60:
             return "|yWinded|n"
-        elif 30 < percent <= 45:
+        if 30 < percent <= 45:
             return "|yTired|n"
-        elif 15 < percent <= 30:
+        if 15 < percent <= 30:
             return "|rExhausted|n"
-        elif 1 < percent <= 15:
+        if 1 < percent <= 15:
             return "|rBarely Hanging On|n"
-        elif percent == 0:
-            return "|RCollapsed!|n"
+
+        return "|RCollapsed!|n"
 
     def heal(self, hp, healer=None):
         """
@@ -165,11 +180,11 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         self.hp += healed
 
         if healer is self:
-            self.msg(f"|gYou heal yourself and feel better.|n")
+            self.msg("|gYou heal yourself and feel better.|n")
         elif healer:
             self.msg(f"|g{healer.key} heals you and you feel better.|n")
         else:
-            self.msg(f"You are healed and feel better.")
+            self.msg("You are healed and feel better.")
 
     @lazy_property
     def equipment(self):
@@ -178,14 +193,17 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
 
     @property
     def weapon(self):
+        """ Character's current wielded weapon. """
         return self.equipment.weapon
 
     @property
     def armor(self):
+        """ Character's current worn armor. """
         return self.equipment.armor
 
     @property
     def shield(self):
+        """ Character's current worn shield. """
         return self.equipment.shield
 
     @lazy_property
@@ -195,10 +213,11 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
 
     @lazy_property
     def buffs(self):
+        """ Get buffs on this character. """
         # TODO Implement
         return AbstractBuffHandler()
 
-    def at_damage(self, damage, attacker=None):
+    def at_damage(self, damage, _attacker=None):
         """
         Called when attacked and taking damage.
 
@@ -226,10 +245,10 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         """
 
         if self.stamina < self.stamina_max:
-          self.stamina += max(self.strength, 1)
+            self.stamina += max(self.strength, 1)
 
         if self.mana < self.mana_max:
-          self.mana += max(self.will, 1)
+            self.mana += max(self.will, 1)
 
     def at_defeat(self):
         """
@@ -247,7 +266,7 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
         if self.combat:
             self.combat.remove(self)
 
-        self.location.msg_contents(f"$You() $conj(die).", from_obj=self)
+        self.location.msg_contents("$You() $conj(die).", from_obj=self)
 
     def at_pay(self, amount):
         """
@@ -288,7 +307,6 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
             bool: If False, no looting is allowed.
 
         """
-        pass
 
     def at_do_loot(self, defeated_enemy):
         """
@@ -308,7 +326,6 @@ class BaseCharacter(ObjectParent, DefaultCharacter):
             defeated_enemy (Object): The enemy just looted.
 
         """
-        pass
 
 
 class Character(BaseCharacter):
@@ -331,15 +348,13 @@ class Character(BaseCharacter):
 
     adelay = NAttributeProperty( default=0.0 ) # delay attacks until float time
     mdelay = NAttributeProperty( default=0.0 ) # delay movement until float time
-    coins = AttributeProperty(default=0)  # copper coins
-
 
     @lazy_property
     def quests(self):
         """Access and track quests"""
         return QuestHandler(self)
 
-    def at_pre_object_receive(self, moved_object, source_location, **kwargs):
+    def at_pre_object_receive(self, arriving_object, source_location, **kwargs):
         """
         Hook called by Evennia before moving an object here. Return False to abort move.
 
@@ -354,9 +369,9 @@ class Character(BaseCharacter):
 
         """
         # this will raise EquipmentError if inventory is full
-        return self.equipment.validate_slot_usage(moved_object)
+        return self.equipment.validate_slot_usage(arriving_object)
 
-    def at_object_receive(self, moved_object, source_location, **kwargs):
+    def at_object_receive(self, moved_obj, source_location, move_type="move", **kwargs):
         """
         Hook called by Evennia as an object is moved here. We make sure it's added
         to the equipment handler.
@@ -368,7 +383,7 @@ class Character(BaseCharacter):
 
         """
         try:
-            self.equipment.add(moved_object)
+            self.equipment.add(moved_obj)
         except EquipmentError as err:
             log_trace(f"at_object_receive error: {err}")
 
@@ -380,7 +395,7 @@ class Character(BaseCharacter):
         """
         return True
 
-    def at_object_leave(self, moved_object, destination, **kwargs):
+    def at_object_leave(self, moved_obj, _destination, move_type="move", **kwargs):
         """
         Called just before an object leaves from inside this object
 
@@ -391,7 +406,7 @@ class Character(BaseCharacter):
                 overriding the call (unused by default).
 
         """
-        self.equipment.remove(moved_object)
+        self.equipment.remove(moved_obj)
 
     def at_defeat(self):
         """
@@ -429,7 +444,6 @@ class Character(BaseCharacter):
         Called when being looted.
 
         """
-        pass
 
     def at_post_puppet(self, **kwargs):
         super().at_post_puppet(**kwargs)
@@ -450,11 +464,12 @@ class Character(BaseCharacter):
             )
         )
 
-    def at_post_move(self, source_location, **kwargs):
+    def at_post_move(self, source_location, move_type="move", **kwargs):
         obj = self
 
         if inherits_from(self, Character):
-            obj = self.account
+            # disable pylint on this as it's a dynamically created django method
+            obj = self.account # pylint: disable=no-member
 
         if not obj:
             log_err(f"at_post_move called on a Character with no account: {self}")
@@ -470,76 +485,3 @@ class Character(BaseCharacter):
         if map_getter := getattr(self.location, 'get_map_display', None):
             # Send the map to the WebClient
             self.msg(map=map_getter(looker=self))
-
-
-
-# character sheet visualization
-
-_SHEET = """
- +----------------------------------------------------------------------------+
- | Name: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx |
- +----------------------------------------------------------------------------+
- | STR: x2xxxxx  DEX: x3xxxxx  CON: x4xxxxx  WIS: x5xxxxx  CHA: x6xxxxx       |
- +----------------------------------------------------------------------------+
- | HP: x7xxxxx                                      XP: x8xxxxx  Level: x9x   |
- +----------------------------------------------------------------------------+
- | Desc: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx |
- | xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx |
- | xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx |
- +----------------------------------------------------------------------------+
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccc1ccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- | cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc |
- +----------------------------------------------------------------------------+
-    """
-
-
-def get_character_sheet(character):
-    """
-    Generate a character sheet. This is grouped in a class in order to make
-    it easier to override the look of the sheet.
-
-                TODO: This is NOT a class - figure out how this is intended to be used and accessed
-
-    """
-
-    @staticmethod
-    def get(character):
-        """
-        Generate a character sheet from the character's stats.
-
-        """
-        equipment = character.equipment.all()
-        # divide into chunks of max 10 length (to go into two columns)
-        equipment_table = EvTable(
-            table=[equipment[i : i + 10] for i in range(0, len(equipment), 10)]
-        )
-        form = EvForm({"FORMCHAR": "x", "TABLECHAR": "c", "SHEET": _SHEET})
-        form.map(
-            cells={
-                1: character.key,
-                2: f"+{character.strength}({character.strength + 10})",
-                3: f"+{character.dexterity}({character.dexterity + 10})",
-                4: f"+{character.constitution}({character.constitution + 10})",
-                5: f"+{character.wisdom}({character.wisdom + 10})",
-                6: f"+{character.charisma}({character.charisma + 10})",
-                7: f"{character.hp}/{character.hp_max}",
-                8: character.xp,
-                9: character.level,
-                "A": character.db.desc,
-            },
-            tables={
-                1: equipment_table,
-            },
-        )
-        return str(form)

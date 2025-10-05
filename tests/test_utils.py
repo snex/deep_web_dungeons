@@ -11,7 +11,9 @@ from typeclasses.objects import Object
 
 
 class TestUtils(BaseEvenniaTest):
+    """ test utils """
     def test_get_obj_stats(self):
+        """ test get_obj_stats """
 
         obj = create.create_object(
             Object, key="testobj", attributes=(("desc", "A test object"),)
