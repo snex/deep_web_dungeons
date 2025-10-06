@@ -7,6 +7,7 @@ from tracery.modifiers import base_english
 
 from .dialog_base import DialogBase
 
+# pylint: disable=too-few-public-methods
 class Insult(DialogBase):
     """ Class for generating insults using tracery. """
     def __init__(self, target, gender='none'):

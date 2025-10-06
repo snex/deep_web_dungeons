@@ -2,6 +2,7 @@
 
 import os
 
+# pylint: disable=too-few-public-methods
 class DialogBase:
     """ Utility methods for all Dialog using tracery. """
 
