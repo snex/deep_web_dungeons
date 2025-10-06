@@ -1,0 +1,13 @@
+<h1 class="card-title">Welcome to Deep Web Dungeons!</h1>
+
+<hr/>
+
+<p>
+    Telnet: <strong>{{ server_hostname }}</strong>, port
+    {% for port in telnet_ports %}
+    {% if not forloop.first and forloop.last %} or
+    {% elif forloop.counter != 1 %},
+    {% endif %}
+    <strong>{{ port }}</strong>
+    {% endfor %}
+</p>
