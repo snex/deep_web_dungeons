@@ -8,247 +8,43 @@ creation commands.
 
 """
 
+import bisect
 from typing import TYPE_CHECKING
 
-from evennia.contrib.game_systems.cooldowns import CooldownHandler
 from evennia.objects.objects import DefaultCharacter
 from evennia.typeclasses.attributes import AttributeProperty, NAttributeProperty
 from evennia.utils.logger import log_err, log_trace
 from evennia.utils.utils import inherits_from, lazy_property
+
+from typeclasses.mixins import (
+    HasRaceMixin,
+    HasCClassMixin,
+    CombatMixin,
+    HasDrainableStatsMixin,
+    HasEquipmentMixin,
+)
 from world import rules
-from world.buffs import AbstractBuffHandler
-from world.characters.classes import CharacterClasses, CharacterClass
-from world.characters.races import Races, Race
-from world.enums import Ability
-from world.equipment import EquipmentError, EquipmentHandler
-from world.levelling import LevelsHandler
+from world.equipment import EquipmentError
 from world.quests import QuestHandler
 
 
 if TYPE_CHECKING:
     from world.combat import CombatHandler
 
-
-# from world.utils import get_obj_stats
-
-
-class BaseCharacter(DefaultCharacter):
+class BaseCharacter(
+    DefaultCharacter,
+    HasRaceMixin,
+    HasCClassMixin,
+    CombatMixin,
+    HasDrainableStatsMixin,
+    HasEquipmentMixin,
+):
     """ Base character is used for all characters, including PCs and NPCs. """
     is_pc = False
 
-    hp = AttributeProperty(default=1)
-    hp_max = AttributeProperty(default=1)
-    mana = AttributeProperty(default=1)
-    mana_max = AttributeProperty(default=1)
-    stamina = AttributeProperty(default=1)
-    stamina_max = AttributeProperty(default=1)
-
-    strength = AttributeProperty(default=1)
-    will = AttributeProperty(default=1)
-    cunning = AttributeProperty(default=1)
-
     gender = AttributeProperty(default="male")
-    cclass_key = AttributeProperty()
-    race_key = AttributeProperty()
-
     coins = AttributeProperty(default=0)  # copper coins
     aggro = AttributeProperty(default="n")  # Defensive, Normal, or Aggressive (d/n/a)
-
-    def get_ability(self, ability):
-        """ Return the ability score of the ability supplied. """
-        if ability not in Ability:
-            raise TypeError(f"Invalid ability: {ability}")
-
-        if ability == Ability.STR:
-            return self.db.strength
-        if ability == Ability.CUN:
-            return self.db.cunning
-
-        return self.db.will
-
-    @property
-    def cclass(self) -> CharacterClass | None:
-        """ Return character's CharacterClass. """
-        cclass = self.ndb.cclass
-        if cclass is None:
-            cclass = CharacterClasses.get(self.db.cclass_key)
-            self.ndb.cclass = cclass
-
-        return cclass
-
-    @property
-    def combat(self) -> 'CombatHandler | None':
-        """ Return CombastHandler instance. """
-        return self.ndb.combat
-
-    @combat.setter
-    def combat(self, value) -> None:
-        self.ndb.combat = value
-
-
-    @property
-    def race(self) -> Race:
-        """ Return character's race. """
-        race = self.ndb.race
-        if race is None:
-            race = Races.get(self.db.race_key)
-            self.ndb.race = race
-
-        return race
-
-    @lazy_property
-    def cooldowns(self):
-        """ Return CooldownHandler instance. """
-        return CooldownHandler(self)
-
-    @property
-    def hurt_level(self):
-        """
-        String describing how hurt this character is.
-        """
-        percent = max(0, min(100, 100 * (self.hp / self.hp_max)))
-        if 95 < percent <= 100:
-            return "|gPerfect|n"
-        if 80 < percent <= 95:
-            return "|gScraped|n"
-        if 60 < percent <= 80:
-            return "|GBruised|n"
-        if 45 < percent <= 60:
-            return "|yHurt|n"
-        if 30 < percent <= 45:
-            return "|yWounded|n"
-        if 15 < percent <= 30:
-            return "|rBadly Wounded|n"
-        if 1 < percent <= 15:
-            return "|rBarely Hanging On|n"
-
-        return "|RCollapsed!|n"
-
-    @property
-    def mana_level(self):
-        """
-        String describing how much mana the character has
-        """
-        percent = max(0, min(100, 100 * (self.mana / self.mana_max)))
-        if 95 < percent <= 100:
-            return "|gPerfect|n"
-        if 80 < percent <= 95:
-            return "|gWell Studied|n"
-        if 60 < percent <= 80:
-            return "|GStudied|n"
-        if 45 < percent <= 60:
-            return "|yLosing Concentration|n"
-        if 30 < percent <= 45:
-            return "|ySlightly Drained|n"
-        if 15 < percent <= 30:
-            return "|rDrained|n"
-        if 1 < percent <= 15:
-            return "|rBarely Hanging On|n"
-
-        return "|REmpty!|n"
-
-    @property
-    def stamina_level(self):
-        """
-        String describing how tired this character is.
-        """
-        percent = max(0, min(100, 100 * (self.stamina / self.stamina_max)))
-        if 95 < percent <= 100:
-            return "|gPerfect|n"
-        if 80 < percent <= 95:
-            return "|gLight Sweat|n"
-        if 60 < percent <= 80:
-            return "|GSweaty|n"
-        if 45 < percent <= 60:
-            return "|yWinded|n"
-        if 30 < percent <= 45:
-            return "|yTired|n"
-        if 15 < percent <= 30:
-            return "|rExhausted|n"
-        if 1 < percent <= 15:
-            return "|rBarely Hanging On|n"
-
-        return "|RCollapsed!|n"
-
-    def heal(self, hp, healer=None):
-        """
-        Heal by a certain amount of HP.
-
-        """
-        damage = self.hp_max - self.hp
-        healed = min(damage, hp)
-        self.hp += healed
-
-        if healer is self:
-            self.msg("|gYou heal yourself and feel better.|n")
-        elif healer:
-            self.msg(f"|g{healer.key} heals you and you feel better.|n")
-        else:
-            self.msg("You are healed and feel better.")
-
-    @lazy_property
-    def equipment(self):
-        """Allows to access equipment like char.equipment.worn"""
-        return EquipmentHandler(self)
-
-    @property
-    def weapon(self):
-        """ Character's current wielded weapon. """
-        return self.equipment.weapon
-
-    @property
-    def armor(self):
-        """ Character's current worn armor. """
-        return self.equipment.armor
-
-    @property
-    def shield(self):
-        """ Character's current worn shield. """
-        return self.equipment.shield
-
-    @lazy_property
-    def levels(self):
-        """Allows to access equipment like char.equipment.worn"""
-        return LevelsHandler(self)
-
-    @lazy_property
-    def buffs(self):
-        """ Get buffs on this character. """
-        # TODO Implement
-        return AbstractBuffHandler()
-
-    def at_damage(self, damage, _attacker=None):
-        """
-        Called when attacked and taking damage.
-
-        """
-        self.hp -= damage
-        if self.hp <= 0:
-            self.at_defeat()
-
-    def spend_stamina(self, amount):
-        """
-        Called when attacking and defending
-        """
-        self.stamina -= amount
-
-    def spend_mana(self, amount):
-        """
-        Called when casting spells
-        """
-        self.mana -= amount
-
-    def at_recovery(self):
-        """
-        Called periodically by the combat ticker
-
-        """
-
-        if self.stamina < self.stamina_max:
-            self.stamina += max(self.strength, 1)
-
-        if self.mana < self.mana_max:
-            self.mana += max(self.will, 1)
 
     def at_defeat(self):
         """
@@ -296,18 +92,6 @@ class BaseCharacter(DefaultCharacter):
             mapping={"looter": looter},
         )
 
-    def pre_loot(self, defeated_enemy):
-        """
-        Called just before looting an enemy.
-
-        Args:
-            defeated_enemy (Object): The enemy soon to loot.
-
-        Returns:
-            bool: If False, no looting is allowed.
-
-        """
-
     def at_do_loot(self, defeated_enemy):
         """
         Called when looting another entity.
@@ -317,15 +101,6 @@ class BaseCharacter(DefaultCharacter):
 
         """
         defeated_enemy.at_looted(self)
-
-    def post_loot(self, defeated_enemy):
-        """
-        Called just after having looted an enemy.
-
-        Args:
-            defeated_enemy (Object): The enemy just looted.
-
-        """
 
 
 class Character(BaseCharacter):
@@ -348,6 +123,46 @@ class Character(BaseCharacter):
 
     adelay = NAttributeProperty( default=0.0 ) # delay attacks until float time
     mdelay = NAttributeProperty( default=0.0 ) # delay movement until float time
+
+    @property
+    def mana_level(self):
+        """
+        String describing how much mana the character has
+        """
+
+        mana_levels = [
+            (1, "|REmpty!|n"),
+            (15, "|rBarely Hanging On|n"),
+            (30, "|rDrained|n"),
+            (45, "|ySlightly Drained|n"),
+            (60, "|yLosing Concentration|n"),
+            (80, "|GStudied|n"),
+            (95, "|gWell Studied|n"),
+            (100, "|gPerfect|n"),
+        ]
+        percent = max(0, min(100, 100 * (self.mana / self.mana_max)))
+
+        return mana_levels[bisect.bisect_left(mana_levels, (percent,))][1]
+
+    @property
+    def stamina_level(self):
+        """
+        String describing how tired this character is.
+        """
+
+        stamina_levels = [
+            (1, "|RCollapsed!|n"),
+            (15, "|rBarely Hanging On|n"),
+            (30, "|rExhausted|n"),
+            (45, "|yTired|n"),
+            (60, "|yWinded|n"),
+            (80, "|GSweaty|n"),
+            (95, "|gLight Sweat|n"),
+            (100, "|gPerfect|n"),
+        ]
+        percent = max(0, min(100, 100 * (self.stamina / self.stamina_max)))
+
+        return stamina_levels[bisect.bisect_left(stamina_levels, (percent,))][1]
 
     @lazy_property
     def quests(self):

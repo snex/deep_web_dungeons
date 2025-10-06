@@ -158,7 +158,7 @@ class EquipmentHandler:
         Get the bare hands weapon, using a universal db object.
         """
 
-        bare_hands= search_object("Bare Hands", typeclass=WeaponBareHands).first()
+        bare_hands = search_object("Bare Hands", typeclass=WeaponBareHands).first()
 
         if not bare_hands:
             bare_hands = create_object(WeaponBareHands, key="Bare Hands")

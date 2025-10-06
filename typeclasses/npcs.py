@@ -5,6 +5,7 @@ Typeclasses defining NPCs. This includes both friends and enemies, only separate
 from random import choice, random, randrange
 
 from evennia.typeclasses.attributes import AttributeProperty
+from evennia.utils.evmenu import EvMenu
 from evennia.utils.utils import inherits_from, make_iter, repeat, unrepeat
 from world.common.dialog.insults import Insult
 from world.enums import Allegiance, CardinalDirections
@@ -32,9 +33,7 @@ class NPC(BaseCharacter):
         Start with max health.
 
         """
-        self.hp = self.hp_max
-        self.mana = self.mana_max
-        self.stamina = self.stamina_max
+        getattr(self, "full_recovery", lambda:None)()
 
     def _do_wander(self, allowed_directions):
         candidates = [
@@ -92,7 +91,7 @@ class InsultNPC(NPC):
         """ When talked to, say an insult. """
         self._say_insult(talker)
 
-    def at_damage(self, damage, attacker=None):
+    def at_damage(self, _damage, attacker=None):
         """
         Insult NPCs are generally immortal and will insult and run if hit."
 
@@ -126,7 +125,7 @@ class TalkativeNPC(NPC):
     # iterable, a random reply will be chosen by the menu
     hi_text = AttributeProperty("Hi!", autocreate=False)
 
-    def at_damage(self, damage, attacker=None):
+    def at_damage(self, _damage, attacker=None):
         """
         Talkative NPCs are generally immortal (we don't deduct HP here by default)."
 
@@ -170,7 +169,7 @@ class TalkativeNPC(NPC):
 
         return new_object, errors
 
-    def at_talk(self, talker, _startnode="node_start", _session=None, **kwargs):
+    def at_talk(self, talker, startnode="node_start", session=None, **kwargs):
         """
         Called by the `talk` command when another entity addresses us.
 
@@ -188,16 +187,15 @@ class TalkativeNPC(NPC):
             `**kwargs` of the start node.
 
         """
-        talker.msg("He has nothing to say.")
-        # make this work!
-        # menu_kwargs = {**self.menu_kwargs, **kwargs}
-        # EvMenu(
-        #     talker,
-        #     self.menudata,
-        #     startnode=startnode,
-        #     session=session, npc=self,
-        #     **menu_kwargs
-        # )
+        menu_kwargs = {**self.menu_kwargs, **kwargs}
+        EvMenu(
+            talker,
+            self.menudata,
+            startnode=startnode,
+            session=session,
+            npc=self,
+            **menu_kwargs
+        )
 
 
 def node_start(caller, raw_string, **kwargs):
@@ -247,7 +245,7 @@ class ShopKeeper(TalkativeNPC):
     # prototypes of common wares
     common_ware_prototypes = AttributeProperty([], autocreate=False)
 
-    def at_damage(self, damage, attacker=None):
+    def at_damage(self, _damage, attacker=None):
         """
         Immortal - we don't deduct any damage here.
 

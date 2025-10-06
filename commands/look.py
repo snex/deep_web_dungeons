@@ -1,7 +1,11 @@
+"""
+Override the default `look` command to display the mini-map.
+"""
+
 from evennia.commands.default.general import CmdLook as _CmdLook
-from .game import CmdCharSheet
 
-
+# disable too-few-public-methods as this is just here to override the default
+# pylint: disable=too-few-public-methods
 class CmdLook(_CmdLook):
     """
     look at location or object

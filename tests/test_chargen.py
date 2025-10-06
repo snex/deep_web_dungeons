@@ -5,13 +5,11 @@ Test chargen.
 
 from unittest.mock import MagicMock, patch
 
-from parameterized import parameterized
-
 from evennia import create_object
 from evennia.utils.test_resources import BaseEvenniaTest
 
-from world import chargen, enums
 from typeclasses import objects
+from world import chargen, enums
 from world.characters.classes import CharacterClasses
 from world.characters.races import Races
 
@@ -22,19 +20,24 @@ class CharacterGenerationTest(BaseEvenniaTest):
 
     """
 
-    @patch('world.chargen.TemporaryCharacterSheet._random_gender')
-    @patch('world.chargen.TemporaryCharacterSheet._random_class')
-    @patch('world.chargen.TemporaryCharacterSheet._random_race')
-    @patch("world.rules.randint")
-    def setUp(self, mock_randint, mock_random_race, mock_random_class, mock_random_gender):
+    def setUp(self):
         super().setUp()
-        mock_randint.return_value = 15
-        mock_random_gender.return_value = "female"
-        mock_random_race.return_value = Races.Human
-        mock_random_class.return_value = CharacterClasses.Warrior
+        self.randint_patcher = patch("world.rules.randint")
+        self.mock_randint = self.randint_patcher.start()
+        self.mock_randint.return_value = 15
+
+        self.choice_patcher = patch("random.choice")
+        self.mock_choice = self.choice_patcher.start()
+        self.mock_choice.side_effect = ["female", Races.Human, CharacterClasses.Warrior]
+
         self.chargen = chargen.TemporaryCharacterSheet()
 
+    def tearDown(self):
+        self.randint_patcher.stop()
+        self.choice_patcher.stop()
+
     def test_base_chargen(self):
+        """ Test that the chargen has the TemporaryCharacter. """
         self.assertEqual(self.chargen.strength, 3)
         self.assertEqual(self.chargen.armor, "Leather Armor")
         self.assertEqual(self.chargen.shield, "buckler")
@@ -43,14 +46,16 @@ class CharacterGenerationTest(BaseEvenniaTest):
         )
 
     def test_build_desc(self):
+        """ Test that the character description is properly created. """
         self.assertEqual(
             self.chargen.desc,
-            "Enio is a female Human, statuesque with a sunken face, sallow skin, oily hair, rapid-fire speech, and "
-            "oversized clothing."
+            "Enio is a female Human, statuesque with a sunken face, sallow skin, oily hair,"
+            " rapid-fire speech and oversized clothing."
         )
 
     @patch("world.chargen.spawn")
     def test_apply(self, mock_spawn):
+        """ Test accepting the character and creating it. """
         gambeson = create_object(objects.ArmorObject, key="gambeson")
         mock_spawn.return_value = [gambeson]
         account = MagicMock()
@@ -73,6 +78,7 @@ class CharacterGenerationTest(BaseEvenniaTest):
         character.delete()
 
     def test_swap_race(self):
+        """ Test changing character race. """
         base_str = self.chargen.strength
         self.chargen.swap_race(Races.Orc)
         self.assertEqual(self.chargen.strength, base_str + 2)  # Orc bonus is +2

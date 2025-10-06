@@ -8,21 +8,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typeclasses.characters import BaseCharacter
 
-
-class _NextLevelXp:
-    """
-    Dataclass to make our mapping of levels to xp more readable.
-    """
-    __slots__ = ('level', 'xp_per_level')
-
-    def __init__(self, level: int, xp_per_level: int):
-        self.xp_per_level = xp_per_level
-        self.level = level
-
-    def __int__(self):
-        return self.xp_per_level
-
-
 class LevelsHandler:
     """
     Class to handle character level ups.
@@ -31,17 +16,6 @@ class LevelsHandler:
     __slots__ = ('obj',)
 
     _ATTRIBUTE_CATEGORY = "levels"
-    _XP_FOR_LEVELS: tuple[_NextLevelXp] = (
-        _NextLevelXp(level=0, xp_per_level=100),
-        _NextLevelXp(level=5, xp_per_level=200),
-        _NextLevelXp(level=10, xp_per_level=300),
-        _NextLevelXp(level=15, xp_per_level=500),
-        _NextLevelXp(level=25, xp_per_level=1000),
-        _NextLevelXp(level=50, xp_per_level=5000),
-        _NextLevelXp(level=75, xp_per_level=10000),
-        _NextLevelXp(level=100, xp_per_level=100000),
-    )
-
     _LEVELS_FOR_STATS = {
         "primary": 4,
         "secondary": 5,
@@ -77,16 +51,18 @@ class LevelsHandler:
     def get_xp_for_next_level(self) -> int:
         """
         Returns the required xp for the next level.
-        """
-        current_level = self.level
-        xp_per_level = self._XP_FOR_LEVELS[0].xp_per_level
-        for next_level_xp in self._XP_FOR_LEVELS:
-            if current_level < next_level_xp.level:
-                xp_per_level = next_level_xp.xp_per_level
-            else:
-                break
+        The equation is as follows:
+            1000 * current_level ^ 1.5 rounded to the nearest 500.
 
-        return xp_per_level
+        The first 5 levels should therefore be as follows:
+            1          0
+            2      2,500
+            3      5,000
+            4      8,000
+            5     11,000
+        """
+
+        return int(round(1000 * (self.level ** 1.5) / 500) * 500)
 
     def add_xp(self, xp: int):
         """

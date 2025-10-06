@@ -47,7 +47,7 @@ def node_display_prefs(caller, raw_string, **kwargs):
             ""
         ), options
 
-def start_prefs(caller, _session=None):
+def start_prefs(caller):
     """
     This is a start point for running the user preferences menu.
     """

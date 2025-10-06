@@ -1,0 +1,3 @@
+[run]
+branch = True
+command_line = ../bin/evennia test --settings settings.py

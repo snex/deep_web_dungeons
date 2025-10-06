@@ -48,16 +48,18 @@ class AttackRules:
         """
 
         for rule, msg in self._RULES.items():
-            if rule(self.attacker, self.target, self.combat_handler):
-                self.invalid_msg = msg.format(self.attacker, self.target, self.combat_handler)
+            if self.apply_rule(rule):
+                self.invalid_msg = msg.format(
+                    attacker=self.attacker,
+                    target=self.target,
+                )
                 return True
 
         return False
 
-    @property
-    def invalid_msg(self):
-        """ The message of the rule that caused the attack to be invalid. """
-        return self.invalid_msg
+    def apply_rule(self, rule):
+        """ Apply a single rule and return whether it passes. Does not set the invalid_msg. """
+        return getattr(self, rule, None)(self.attacker, self.target, self.combat_handler)
 
     def _not_in_combat(self, attacker, _target, _combat_handler):
         return not attacker.combat
@@ -77,7 +79,7 @@ class AttackRules:
 
     def _out_of_stamina(self, attacker, _target, combat_handler):
         attack_type = attacker.weapon.attack_type
-        stamina_cost = combat_handler.get_attack_stamina_cost(
+        stamina_cost = combat_handler.rules.get_attack_stamina_cost(
             attacker,
             attack_type,
             attacker.weapon.stamina_cost
@@ -95,10 +97,10 @@ class CombatRules:
     def validate_weapon_attack(self, attacker: 'BaseCharacter', target: 'BaseCharacter') -> bool:
         """ Base method for validating weapon attack. """
         attack_rules = AttackRules(attacker, target, combat_handler=self.handler)
-        invalid_msg = attack_rules.attack_invalid()
+        attack_invalid = attack_rules.attack_invalid()
 
-        if invalid_msg:
-            attacker.msg(invalid_msg)
+        if attack_invalid:
+            attacker.msg(attack_rules.invalid_msg)
             return False
 
         return True

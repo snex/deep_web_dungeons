@@ -140,7 +140,7 @@ class Quest:
 
         help_resource = (
             getattr(self, f"help_{self.current_step}", None)
-            or "You need to {self.current_step} ..."
+            or f"You need to {self.current_step} ..."
         )
         if callable(help_resource):
             # the help_<current_step> can be a method to call

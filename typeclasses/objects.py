@@ -159,7 +159,7 @@ class WeaponObject(Object):
 
     # maximum attack range for this weapon
     attack_range: CombatRange = AttributeProperty(CombatRange.MELEE)
-    attack_type: AttackType = AttributeProperty(AttackType.MELEE)
+    attack_type: AttackType = AttributeProperty(Ability.STR)
     # what defense stat of the enemy it must defeat
     defense_type: Ability = AttributeProperty(DefenseType.ARMOR)
 
@@ -167,6 +167,12 @@ class WeaponObject(Object):
     max_damage: int = AttributeProperty(4)
     stamina_cost: int = AttributeProperty(2)
     cooldown: int = AttributeProperty(2)
+
+    parry: bool = AttributeProperty(False)
+
+    def can_parry(self):
+        """ Can this weapon parry attacks? """
+        return self.parry
 
 class WeaponBareHands(WeaponObject):
     """
@@ -177,6 +183,9 @@ class WeaponBareHands(WeaponObject):
     attack_type = Ability.STR
     defense_type = DefenseType.ARMOR
     damage_roll = "1d4"
+
+    def can_parry(self):
+        return False
 
 class Runestone(WeaponObject, ConsumableObject):
     """

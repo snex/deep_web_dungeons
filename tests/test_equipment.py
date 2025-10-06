@@ -16,21 +16,26 @@ from .mixins import AinneveTestMixin
 
 
 class TestEquipment(AinneveTestMixin, EvenniaTest):
+    """ Test Equipment. """
     def test_count_slots(self):
+        """ Test count slots. """
         self.assertEqual(self.char1.equipment.count_slots(), 0)
 
     def test_max_slots(self):
+        """ Test max slots. """
         self.assertEqual(self.char1.equipment.max_slots, 11)
         setattr(self.char1, Ability.STR.value, 3)
         self.assertEqual(self.char1.equipment.max_slots, 13)
 
     def test_add__remove(self):
+        """ Test add and remove. """
         self.char1.equipment.add(self.helmet)
         self.assertEqual(self.char1.equipment.slots[WieldLocation.BACKPACK], [self.helmet])
         self.char1.equipment.remove(self.helmet)
         self.assertEqual(self.char1.equipment.slots[WieldLocation.BACKPACK], [])
 
     def test_move__get_current_slot(self):
+        """ Test move and get_current_slot. """
         self.char1.equipment.add(self.helmet)
         self.assertEqual(
             self.char1.equipment.get_current_slot(self.helmet), WieldLocation.BACKPACK
@@ -39,6 +44,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         self.assertEqual(self.char1.equipment.get_current_slot(self.helmet), WieldLocation.HEAD)
 
     def test_get_wearable_or_wieldable_objects_from_backpack(self):
+        """ Tests listing wearable or wieldable items from backpack. """
         self.char1.equipment.add(self.helmet)
         self.char1.equipment.add(self.weapon)
 
@@ -62,9 +68,6 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
             ],
         )
 
-    def test_equipmenthandler_max_slots(self):
-        self.assertEqual(self.char1.equipment.max_slots, 11)
-
     @parameterized.expand(
         [
             # size, pass_validation?
@@ -77,6 +80,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         ]
     )
     def test_validate_slot_usage(self, size, is_ok):
+        """ Test validating slot usage. """
         obj = MagicMock()
         obj.size = size
 
@@ -89,6 +93,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
                     self.char1.equipment.validate_slot_usage(obj)
 
     def test_display_loadout(self):
+        """ Test that displaying the loadout works. """
         self.assertEqual(
             self.char1.equipment.display_loadout(),
             "You are fighting with your bare fists and have no shield.\n"
@@ -111,6 +116,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         )
 
     def test_display_backpack(self):
+        """ Test displaying backpack. """
         self.assertEqual(
             self.char1.equipment.display_backpack(),
             "Backpack is empty."
@@ -124,6 +130,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         )
 
     def test_display_slot_usage(self):
+        """ Test displaying slots. """
         self.assertEqual(
             self.char1.equipment.display_slot_usage(),
             "|b0/11|n"
@@ -146,8 +153,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         ]
     )
     def test_move(self, itemname, where):
-        self.assertEqual(self.char1.equipment.slots, self.char1.equipment._empty_slots())
-
+        """ Test that moving gear works. """
         obj = getattr(self, itemname)
         self.char1.equipment.move(obj)
         # check that item ended up in the right place
@@ -157,12 +163,13 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
             self.assertEqual(self.char1.equipment.slots[where], obj)
 
     def test_add(self):
+        """ Test that adding gear works. """
         self.char1.equipment.add(self.weapon)
         self.assertEqual(self.char1.equipment.slots[WieldLocation.WEAPON_HAND], None)
         self.assertTrue(self.weapon in self.char1.equipment.slots[WieldLocation.BACKPACK])
 
     def test_two_handed_exclusive(self):
-        """Two-handed weapons can't be used together with weapon+shield"""
+        """ Two-handed weapons can't be used together with weapon+shield """
         self.char1.equipment.move(self.big_weapon)
         self.assertEqual(self.char1.equipment.slots[WieldLocation.TWO_HANDS], self.big_weapon)
         # equipping sword or shield removes two-hander
@@ -179,6 +186,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         self.assertEqual(self.char1.equipment.slots[WieldLocation.WEAPON_HAND], None)
 
     def test_remove__with_obj(self):
+        """ Test that you can remove gear by referring to the item. """
         self.char1.equipment.move(self.shield)
         self.char1.equipment.move(self.item)
         self.char1.equipment.add(self.weapon)
@@ -195,6 +203,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         self.assertEqual(self.char1.equipment.slots[WieldLocation.BACKPACK], [self.weapon])
 
     def test_remove__with_slot(self):
+        """ Test that you can remove gear by referring to location. """
         self.char1.equipment.move(self.shield)
         self.char1.equipment.move(self.item)
         self.char1.equipment.add(self.helmet)
@@ -213,6 +222,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         self.assertEqual(self.char1.equipment.slots[WieldLocation.BACKPACK], [])
 
     def test_properties(self):
+        """ Test that properties change when equipping gear. """
         self.char1.equipment.move(self.armor)
         self.assertEqual(self.char1.equipment.armor, 1)
         self.char1.equipment.move(self.shield)

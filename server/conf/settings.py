@@ -22,6 +22,7 @@ MULTISESSION_MODE = 2
 AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False
 AUTO_PUPPET_ON_LOGIN = False
 MAX_NR_CHARACTERS = 5
+STATICFILES_DIRS = []
 
 FILE_HELP_ENTRY_MODULES = [ 'world.help.combat_help' ]
 BASE_CHARACTER_TYPECLASS = "typeclasses.characters.Character"
@@ -34,9 +35,9 @@ BASE_CHARACTER_TYPECLASS = "typeclasses.characters.Character"
 # make contrib prototypes available as parents for map nodes
 PROTOTYPE_MODULES += [
     'evennia.contrib.grid.xyzgrid.prototypes',
-    'world.overworld.prototypes',
     'world.common.item_prototypes',
     'world.common.mob_prototypes',
+    'world.common.npc_prototypes',
     'world.common.room_prototypes',
 ]
 

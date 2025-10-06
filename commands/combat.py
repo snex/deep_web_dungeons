@@ -4,14 +4,13 @@ Combat commands.
 
 from random import choice
 
-from evennia import CmdSet
-from evennia.utils import inherits_from
 from world.combat import CombatHandler
 from world.enums import CombatRange
 from .command import Command
 
 
 class CombatCommand(Command):
+    """ Commands for use during combat. """
     cooldown_key = ""
     cooldown_message = "You can't do that for another {delay} seconds."
 
@@ -28,6 +27,7 @@ class CombatCommand(Command):
         self.target = target
 
     def get_target(self):
+        """ Get default target if none specified. """
         if not self.args:
             # TODO Use the last hit enemy OR
             # TODO Find the closest enemy in combat.
@@ -36,6 +36,7 @@ class CombatCommand(Command):
         return self.caller.search(self.args)
 
     def validate_target(self) -> bool:
+        """ Validates whether target is valid. """
         target = self.target
         if not target or not target.dbid or not hasattr(target, "combat"):
             self.caller.msg("Invalid target.")
@@ -69,7 +70,8 @@ class CmdInitiateCombat(CombatCommand):
         combat = CombatHandler.get_or_create(caller, target)
         combat_range = combat.get_range(caller, target)
         caller.msg(
-            f"You prepare for combat! {target.get_display_name(caller)} is at {combat_range.name.lower()} range."
+            f"You prepare for combat! {target.get_display_name(caller)}"
+            f" is at {combat_range.name.lower()} range."
         )
 
         # TODO: trigger combat prompt
@@ -102,7 +104,8 @@ class CmdAdvance(CombatCommand):
                 mapping={"attacker": caller, "target": target},
             )
             caller.msg(
-                f"You advance towards {target.get_display_name(caller)} and are now at {combat_range.lower()} range."
+                f"You advance towards {target.get_display_name(caller)}"
+                f" and are now at {combat_range.lower()} range."
             )
         else:
             caller.msg(
@@ -138,7 +141,8 @@ class CmdRetreat(CombatCommand):
                 mapping={"attacker": caller, "target": target},
             )
             caller.msg(
-                f"You retreat from {target.get_display_name(caller)} and are now at {combat_range.lower()} range."
+                f"You retreat from {target.get_display_name(caller)}"
+                f" and are now at {combat_range.lower()} range."
             )
         else:
             caller.msg(
@@ -176,14 +180,11 @@ class CmdHit(CombatCommand):
         if hittable is None:
             caller.msg("You can't fight that.")
             return
-        elif not hittable:
+        if not hittable:
             caller.msg(f"{target.get_display_name(caller)} is too far away.")
             return
 
         combat.at_melee_attack(caller, target)
-
-
-
 
 class CmdShoot(CombatCommand):
     """Basic ranged combat attack."""
@@ -240,21 +241,3 @@ class CmdFlee(CombatCommand):
 
     def get_target(self):
         return None
-
-
-# TODO: add defend command for changing/setting your defense zone
-
-
-class CombatCmdSet(CmdSet):
-    """Command set containing combat commands"""
-
-    key = "combat_cmdset"
-
-    def at_cmdset_creation(self):
-        """Populate CmdSet"""
-        self.add(CmdInitiateCombat())
-        self.add(CmdHit())
-        self.add(CmdShoot())
-        self.add(CmdAdvance())
-        self.add(CmdRetreat())
-        self.add(CmdFlee())

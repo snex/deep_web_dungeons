@@ -40,7 +40,9 @@ Your belongings:
 _SORTED_RACES = sorted(list(Races.values()), key=lambda race: race.name)
 _SORTED_CLASSES = sorted(list(CharacterClasses.values()), key=lambda cclass: cclass.name)
 
-
+# disable too-many-instance-attributes since this is a temporary character sheet that needs
+# to hold a lot of attributes
+# pylint: disable=too-many-instance-attributes
 class TemporaryCharacterSheet:
     """
     This collects all the rules for generating a new character. An instance of this class is used
@@ -80,7 +82,6 @@ class TemporaryCharacterSheet:
         self.cunning += self.race.cunning_mod
 
     def __init__(self):
-        # name will likely be modified later
         self.name = dice.roll_random_table("1d282", chargen_tables["name"])
         self.gender = self._random_gender()
 
@@ -126,10 +127,6 @@ class TemporaryCharacterSheet:
         self.backpack = [
             "ration",
             "ration",
-        #     dice.roll_random_table("1d20", chargen_tables["dungeoning gear"]),
-        #     dice.roll_random_table("1d20", chargen_tables["dungeoning gear"]),
-        #     dice.roll_random_table("1d20", chargen_tables["general gear 1"]),
-        #     dice.roll_random_table("1d20", chargen_tables["general gear 2"]),
         ]
 
     def show_sheet(self):

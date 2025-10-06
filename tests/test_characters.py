@@ -3,31 +3,37 @@ Test characters.
 
 """
 
-from evennia.utils import create
-from evennia.utils.test_resources import EvenniaTest
 from unittest.mock import patch
+
+from evennia.utils.test_resources import EvenniaTest
 from world.characters.classes import CharacterClasses
 from world.characters.races import Races
 
 
 class TestCharacters(EvenniaTest):
+    """ Test Character methods. """
+
     def test_abilities(self):
+        """ Test abilities work. """
         self.char1.strength += 2
         self.assertEqual(self.char1.strength, 3)
 
     def test_cclass(self):
+        """ Test character classes work. """
         self.char1.db.cclass_key = "paladin"
         self.assertEqual(self.char1.cclass, CharacterClasses.Paladin)
         self.char1.ndb.cclass = CharacterClasses.Warrior
         self.assertEqual(self.char1.cclass, CharacterClasses.Warrior)
 
     def test_race(self):
+        """ Test races work. """
         self.char1.db.race_key = "dwarf"
         self.assertEqual(self.char1.race, Races.Dwarf)
         self.char1.ndb.race = Races.Human
         self.assertEqual(self.char1.race, Races.Human)
 
     def test_hurt_level(self):
+        """ Test hurt_level text. """
         self.char1.hp = self.char1.hp_max = 100
         self.assertEqual(self.char1.hurt_level, "|gPerfect|n")
         self.char1.hp = 90
@@ -48,6 +54,7 @@ class TestCharacters(EvenniaTest):
         self.assertEqual(self.char1.hurt_level, "|RCollapsed!|n")
 
     def test_mana_level(self):
+        """ Test mana_level text. """
         self.char1.mana = self.char1.mana_max = 100
         self.assertEqual(self.char1.mana_level, "|gPerfect|n")
         self.char1.mana = 90
@@ -68,6 +75,7 @@ class TestCharacters(EvenniaTest):
         self.assertEqual(self.char1.mana_level, "|REmpty!|n")
 
     def test_stamina_level(self):
+        """ Test stamina_level text. """
         self.char1.stamina = self.char1.stamina_max = 100
         self.assertEqual(self.char1.stamina_level, "|gPerfect|n")
         self.char1.stamina = 90
@@ -98,11 +106,13 @@ class TestCharacters(EvenniaTest):
         self.assertEqual(self.char1.hp, 8)
 
     def test_at_damage(self):
+        """ Test that damage is applied properly. """
         self.char1.hp = 8
         self.char1.at_damage(5)
         self.assertEqual(self.char1.hp, 3)
 
     def test_at_recovery(self):
+        """ Test that stamina and mana recover properly. """
         self.char1.strength = self.char1.will = 1
         self.char1.stamina = self.char1.mana = 1
         self.char1.at_recovery()
@@ -124,6 +134,7 @@ class TestCharacters(EvenniaTest):
         self.assertEqual(self.char1.mana, 1)
 
     def test_at_pay(self):
+        """ Test that paying deducts coins properly. """
         self.char1.coins = 100
 
         result = self.char1.at_pay(60)
@@ -137,6 +148,7 @@ class TestCharacters(EvenniaTest):
 
     @patch("typeclasses.characters.Character.at_look")
     def test_at_post_move(self, mock_at_look):
+        """ Test that look is called after a character moves. """
         mock_at_look.return_value = "room!"
         with patch("typeclasses.characters.Character.msg") as mock_msg:
             self.char1.at_post_move(self.char1.location)

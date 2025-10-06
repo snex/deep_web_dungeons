@@ -18,11 +18,11 @@ from evennia import default_cmds
 from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
 
 from .debug import DebugCmdSet
-from .game import AinneveCmdSet
+from .game import CmdCharSheet, CmdInventory, CmdWieldOrWear, CmdRemove, CmdGive, CmdTalk
 from .look import CmdLook
 from .ooc import CmdCharCreate
 from .prefs import CmdPrefs
-from .combat import CombatCmdSet
+from .combat import CmdInitiateCombat, CmdHit, CmdShoot, CmdAdvance, CmdRetreat, CmdFlee
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
     """
@@ -39,11 +39,25 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         """
         super().at_cmdset_creation()
         self.add(CmdLook())  # We override the look func to display the map
-        
         self.add(DebugCmdSet())  # commands for debugging purposes
         self.add(XYZGridCmdSet()) # xyzgrid pathfinding and building commands
-        self.add(AinneveCmdSet()) # our own game commands
-        self.add(CombatCmdSet()) # combat-specific commands
+
+        # non-combat commands
+        self.add(CmdCharSheet())
+        self.add(CmdInventory())
+        self.add(CmdWieldOrWear())
+        self.add(CmdRemove())
+        self.add(CmdGive())
+        self.add(CmdTalk())
+
+        # combat commands
+        # self.add(CombatCmdSet()) # combat-specific commands
+        self.add(CmdInitiateCombat())
+        self.add(CmdHit())
+        self.add(CmdShoot())
+        self.add(CmdAdvance())
+        self.add(CmdRetreat())
+        self.add(CmdFlee())
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
@@ -62,43 +76,3 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         super().at_cmdset_creation()
         self.add(CmdCharCreate()) # Override default creation
         self.add(CmdPrefs())
-
-
-class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
-    """
-    Command set available to the Session before being logged in.  This
-    holds commands like creating a new account, logging in, etc.
-    """
-
-    key = "DefaultUnloggedin"
-
-    def at_cmdset_creation(self):
-        """
-        Populates the cmdset
-        """
-        super().at_cmdset_creation()
-        #
-        # any commands you add below will overload the default ones.
-        #
-
-
-class SessionCmdSet(default_cmds.SessionCmdSet):
-    """
-    This cmdset is made available on Session level once logged in. It
-    is empty by default.
-    """
-
-    key = "DefaultSession"
-
-    def at_cmdset_creation(self):
-        """
-        This is the only method defined in a cmdset, called during
-        its creation. It should populate the set with command instances.
-
-        As and example we just add the empty base `Command` object.
-        It prints some info.
-        """
-        super().at_cmdset_creation()
-        #
-        # any commands you add below will overload the default ones.
-        #

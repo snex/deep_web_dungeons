@@ -10,6 +10,8 @@ from typeclasses.rooms import Room
 from .mixins import AinneveTestMixin
 
 class TestConsumableHealingObject(AinneveTestMixin, EvenniaTest):
+    """ Test ConsumableHealingObject. """
+
     def setUp(self):
         super().setUp()
         self.char = create.create_object(
@@ -22,6 +24,7 @@ class TestConsumableHealingObject(AinneveTestMixin, EvenniaTest):
         )
 
     def test_at_use(self):
+        """ test that using a ConsumableHealingObject heals the user. """
         heal_pot = create.create_object(
             ConsumableHealingObject,
             key="ration"

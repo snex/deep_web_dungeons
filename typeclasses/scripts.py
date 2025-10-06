@@ -15,8 +15,10 @@ just overloads its hooks to have it perform its function.
 from evennia.scripts.scripts import DefaultScript
 from evennia.utils.search import search_typeclass
 
+class Script(DefaultScript):
+    """ Script Base class. This is required for Evennia to create objects. """
 
-class GlobalRecoveryScript(DefaultScript):
+class GlobalRecoveryScript(Script):
     """
     Script to handle periodic recovery for all players.
     """

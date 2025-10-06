@@ -21,13 +21,13 @@ class _TestQuest(quests.Quest):
     key = "testquest"
     desc = "A test quest!"
 
-    start_step = "A"
+    start_step = "a"
     end_text = "This task is completed."
 
-    help_A = "You need to do A first."
-    help_B = "Next, do B."
+    help_a = "You need to do A first."
+    help_b = "Next, do B."
 
-    def step_A(self, *args, **kwargs):
+    def step_a(self, *args, **kwargs):
         """
         Quest-step A is completed when quester carries an item with tag "QuestA" and category
         "quests".
@@ -36,10 +36,10 @@ class _TestQuest(quests.Quest):
         # unit test it's fine though
         if any(obj for obj in self.quester.contents if obj.tags.has("QuestA", category="quests")):
             self.quester.msg("Completed step A of quest!")
-            self.current_step = "B"
+            self.current_step = "b"
             self.progress()
 
-    def step_B(self, *args, **kwargs):
+    def step_b(self, *args, **kwargs):
         """
         Quest-step B is completed when the progress-check is called with a special kwarg
         "complete_quest_B"
@@ -48,14 +48,14 @@ class _TestQuest(quests.Quest):
         if kwargs.get("complete_quest_B", False):
             self.quester.msg("Completed step B of quest!")
             self.quester.db.test_quest_counter = 0
-            self.current_step = "C"
+            self.current_step = "c"
             self.progress()
 
-    def help_C(self):
+    def help_c(self):
         """Testing the method-version of getting a help entry"""
         return f"Only C left now, {self.quester.key}!"
 
-    def step_C(self, *args, **kwargs):
+    def step_c(self, *args, **kwargs):
         """
         Step C (final) step of quest completes when a counter on quester is big enough.
 
@@ -87,13 +87,13 @@ class QuestTest(AinneveTestMixin, EvenniaTest):
     def _get_quest(self):
         return self.char1.quests.get(_TestQuest.key)
 
-    def _fulfillA(self):
+    def _fulfill_a(self):
         """Fulfill quest step A"""
         Object.create(
             key="quest obj", location=self.char1, tags=(("QuestA", "quests"),)
         )
 
-    def _fulfillC(self):
+    def _fulfill_c(self):
         """Fullfill quest step C"""
         self.char1.db.test_quest_counter = 6
 
@@ -122,7 +122,7 @@ class QuestTest(AinneveTestMixin, EvenniaTest):
         self.char1.quests.progress(_TestQuest.key)
 
         # still on step A
-        self.assertEqual(self._get_quest().current_step, "A")
+        self.assertEqual(self._get_quest().current_step, "a")
 
     def test_progress(self):
         """
@@ -130,21 +130,21 @@ class QuestTest(AinneveTestMixin, EvenniaTest):
 
         """
         # A requires a certain object in inventory
-        self._fulfillA()
+        self._fulfill_a()
         self.char1.quests.progress()
-        self.assertEqual(self._get_quest().current_step, "B")
+        self.assertEqual(self._get_quest().current_step, "b")
 
         # B requires progress be called with specific kwarg
         # should not step (no kwarg)
         self.char1.quests.progress()
-        self.assertEqual(self._get_quest().current_step, "B")
+        self.assertEqual(self._get_quest().current_step, "b")
 
         # should step (kwarg sent)
         self.char1.quests.progress(complete_quest_B=True)
-        self.assertEqual(self._get_quest().current_step, "C")
+        self.assertEqual(self._get_quest().current_step, "c")
 
         # C requires a counter Attribute on char be high enough
-        self._fulfillC()
+        self._fulfill_c()
         self.char1.quests.progress()
-        self.assertEqual(self._get_quest().current_step, "C")  # still on last step
+        self.assertEqual(self._get_quest().current_step, "c")  # still on last step
         self.assertEqual(self._get_quest().is_completed, True)

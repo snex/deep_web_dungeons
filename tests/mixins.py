@@ -4,9 +4,8 @@ Helpers for testing evadventure modules.
 """
 
 from evennia.utils import create
+from evennia.utils.test_resources import EvenniaTest
 
-from world import enums
-from typeclasses.characters import Character
 from typeclasses.objects import (
     ArmorObject,
     Helmet,
@@ -17,7 +16,7 @@ from typeclasses.objects import (
 from world.enums import WieldLocation
 
 
-class AinneveTestMixin:
+class AinneveTestMixin(EvenniaTest):
     """
     Provides a set of pre-made characters.
 

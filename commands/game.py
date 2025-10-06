@@ -7,77 +7,31 @@ be needed.
 
 """
 
-from evennia import CmdSet, InterruptCommand
+from evennia import InterruptCommand
 from evennia.utils.evmenu import EvMenu
 from evennia.utils.utils import inherits_from
 
 from typeclasses.npcs import TalkativeNPC, InsultNPC
 
-# TODO: properly implement real-time combat
-# from world.combat_turnbased import CombatFailure, join_combat
 from world.enums import WieldLocation
 from world.equipment import EquipmentError
 from world.utils import get_obj_stats
 
 from .command import Command
 
-class CmdAttackTurnBased(Command):
-    """
-    Attack a target or join an existing combat.
-
-    Usage:
-      attack <target>
-      attack <target>, <target>, ...
-
-    If the target is involved in combat already, you'll join combat with
-    the first target you specify. Attacking multiple will draw them all into
-    combat.
-
-    This will start/join turn-based, combat, where you have a limited
-    time to decide on your next action from a menu of options.
-
-    """
-
-    key = "attack"
-    aliases = ("hit",)
-
-    def parse(self):
-        super().parse()
-        self.targets = [name.strip() for name in self.args.split(",")]
-
-    def func(self):
-
-        # find if
-
-        target_objs = []
-        for target in self.targets:
-            target_obj = self.caller.search(target)
-            if not target_obj:
-                # show a warning but don't abort
-                continue
-            target_objs.append(target_obj)
-
-        if target_objs:
-            try:
-                join_combat(self.caller, *target_objs, session=self.session)
-            except CombatFailure as err:
-                self.caller.msg(f"|r{err}|n")
-        else:
-            self.caller.msg("|rFound noone to attack.|n")
-
 _CHAR_SHEET = """
 |w{name} the {gender} {race} {cclass}|n
 
-STR +{strength}
-CUN +{cunning}
-WIL +{will}
+STR {str_plus_minus}{strength}
+CUN {cun_plus_minus}{cunning}
+WIL {wil_plus_minus}{will}
 
 {description}
 
 Current stats:
     Health: {hurt_level}
     Mana: {mana_level}
-    Stamina {stamina_level}
+    Stamina: {stamina_level}
 """
 
 class CmdCharSheet(Command):
@@ -95,8 +49,11 @@ class CmdCharSheet(Command):
             _CHAR_SHEET.format(
                 name=self.caller.name,
                 gender=self.caller.gender,
+                str_plus_minus=("+" if self.caller.strength >= 0 else ""),
                 strength=self.caller.strength,
+                cun_plus_minus=("+" if self.caller.cunning >= 0 else ""),
                 cunning=self.caller.cunning,
+                wil_plus_minus=("+" if self.caller.will >= 0 else ""),
                 will=self.caller.will,
                 race=self.caller.race,
                 cclass=self.caller.cclass,
@@ -224,7 +181,7 @@ class CmdRemove(Command):
 # give / accept menu
 
 
-def _rescind_gift(caller, raw_string, **kwargs):
+def _rescind_gift(_caller, raw_string, **kwargs):
     """
     Called when giver rescinds their gift in `node_give` below.
     It means they entered 'cancel' on the gift screen.
@@ -290,7 +247,8 @@ def _accept_or_reject_gift(caller, raw_string, **kwargs):
                     mapping={giver.key: giver, caller.key: caller},
                 )
         giver.ndb._evmenu.close_menu()
-        return "node_end"
+
+    return "node_end"
 
 
 def node_receive(caller, raw_string, **kwargs):
@@ -316,7 +274,8 @@ def node_receive(caller, raw_string, **kwargs):
     return text, options
 
 
-def node_end(caller, raw_string, **kwargs):
+def node_end(_caller, raw_string, **kwargs):
+    """ End the give/receive menu. """
     return "", None
 
 
@@ -339,6 +298,13 @@ class CmdGive(Command):
 
     """
 
+    def __init__(self):
+        super().__init__()
+        self.item_name = None
+        self.receiver_name = None
+        self.receiver = None
+        self.coins = None
+
     key = "give"
 
     def parse(self):
@@ -353,7 +319,8 @@ class CmdGive(Command):
                 "Usage: give <item> to <recevier>. Specify e.g. '10 coins' to pay money. "
                 "Use quotes around the item name it if includes the substring ' to '. "
             )
-            raise InterruptCommand
+            # disable pylint here as evennnia defines this Exception strangely
+            raise InterruptCommand # pylint: disable=raising-bad-type
 
         self.item_name = ""
         self.coins = 0
@@ -379,65 +346,71 @@ class CmdGive(Command):
         self.item_name = item_name
         self.receiver_name = receiver_name
 
-    def func(self):
-        caller = self.caller
-
-        receiver = caller.search(self.receiver_name)
-        if not receiver:
+    def _give_coins(self):
+        current_coins = self.caller.coins
+        if self.coins > current_coins:
+            self.caller.msg(f"You only have |y{current_coins}|n coins to give.")
             return
+        # do transaction
+        self.caller.coins -= self.coins
+        self.receiver.coins += self.coins
+        self.caller.location.msg_contents(
+            f"$You() $conj(give) $You({self.receiver.key}) {self.coins} coins.",
+            from_obj=self.caller,
+            mapping={self.receiver.key: self.receiver},
+        )
+        return
 
-        # giving of coins is always accepted
-
-        if self.coins:
-            current_coins = caller.coins
-            if self.coins > current_coins:
-                caller.msg(f"You only have |y{current_coins}|n coins to give.")
-                return
-            # do transaction
-            caller.coins -= self.coins
-            receiver.coins += self.coins
-            caller.location.msg_contents(
-                f"$You() $conj(give) $You({receiver.key}) {self.coins} coins.",
-                from_obj=caller,
-                mapping={receiver.key: receiver},
-            )
-            return
-
-        # giving of items require acceptance before it happens
-
-        item = caller.search(self.item_name, candidates=caller.equipment.all(only_objs=True))
+    def _give_item(self):
+        item = self.caller.search(
+            self.item_name,
+            candidates=self.caller.equipment.all(only_objs=True)
+        )
         if not item:
             return
 
         # testing hook
-        if not item.at_pre_give(caller, receiver):
+        if not item.at_pre_give(self.caller, self.receiver):
             return
 
         # before we start menus, we must check so either part is not already in a menu,
         # that would be annoying otherwise
-        if receiver.ndb._evmenu:
-            caller.msg(
-                f"{receiver.get_display_name(looker=caller)} seems busy talking to someone else."
+        if self.receiver.ndb._evmenu:
+            self.caller.msg(
+                f"{self.receiver.get_display_name(looker=self.caller)}"
+                " seems busy talking to someone else."
             )
             return
-        if caller.ndb._evmenu:
-            caller.msg("Close the current menu first.")
+        if self.caller.ndb._evmenu:
+            self.caller.msg("Close the current menu first.")
             return
 
         # this starts evmenus for both parties
         EvMenu(
-            receiver,
+            self.receiver,
             {"node_receive": node_receive, "node_end": node_end},
             startnode="node_receive",
-            startnode_input=("", {"item": item, "giver": caller})
+            startnode_input=("", {"item": item, "giver": self.caller})
         )
         EvMenu(
-            caller,
+            self.caller,
             {"node_give": node_give, "node_end": node_end},
             startnode="node_give",
-            startnode_input=("", {"item": item, "receiver": receiver})
+            startnode_input=("", {"item": item, "receiver": self.receiver})
         )
 
+    def func(self):
+        self.receiver = self.caller.search(self.receiver_name)
+        if not self.receiver:
+            return
+
+        # giving of coins is always accepted
+        if self.coins:
+            self._give_coins()
+            return
+
+        # giving of items require acceptance before it happens
+        self._give_item()
 
 class CmdTalk(Command):
     """
@@ -461,21 +434,3 @@ class CmdTalk(Command):
             )
             return
         target.at_talk(self.caller)
-
-
-class AinneveCmdSet(CmdSet):
-    """
-    Groups all commands in one cmdset which can be added in one go to the DefaultCharacter cmdset.
-
-    """
-
-    key = "ainneve"
-
-    def at_cmdset_creation(self):
-#        self.add(CmdAttackTurnBased())
-        self.add(CmdCharSheet())
-        self.add(CmdInventory())
-        self.add(CmdWieldOrWear())
-        self.add(CmdRemove())
-        self.add(CmdGive())
-        self.add(CmdTalk())

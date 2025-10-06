@@ -117,6 +117,7 @@ LEGEND = {
     "🜛": MagicStoreNode,
 }
 
+# need fishing zone, pvp/combat training arena, temple, mining/harvesting area
 PROTOTYPES = {
     # (5, 8): {},
     # (7, 4): {},
