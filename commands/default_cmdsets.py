@@ -17,7 +17,6 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 from evennia import default_cmds
 from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
 
-from .debug import DebugCmdSet
 from .game import CmdCharSheet, CmdInventory, CmdWieldOrWear, CmdRemove, CmdGive, CmdTalk
 from .look import CmdLook
 from .ooc import CmdCharCreate
@@ -39,7 +38,6 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         """
         super().at_cmdset_creation()
         self.add(CmdLook())  # We override the look func to display the map
-        self.add(DebugCmdSet())  # commands for debugging purposes
         self.add(XYZGridCmdSet()) # xyzgrid pathfinding and building commands
 
         # non-combat commands

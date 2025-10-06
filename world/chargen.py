@@ -13,8 +13,8 @@ from evennia.prototypes.spawner import spawn
 from evennia.utils.evmenu import EvMenu
 from evennia.utils.logger import log_err
 from typeclasses.characters import Character
-from world.characters.classes import CharacterClasses, CharacterClass
-from world.characters.races import Races, Race
+from world.characters.classes import CHARACTER_CLASSES, CharacterClass
+from world.characters.races import RACES, Race
 from .random_tables import chargen_tables
 from .rules import dice
 
@@ -37,8 +37,8 @@ Your belongings:
 {equipment}
 """
 
-_SORTED_RACES = sorted(list(Races.values()), key=lambda race: race.name)
-_SORTED_CLASSES = sorted(list(CharacterClasses.values()), key=lambda cclass: cclass.name)
+_SORTED_RACES = sorted(list(RACES.values()), key=lambda race: race.name)
+_SORTED_CLASSES = sorted(list(CHARACTER_CLASSES.values()), key=lambda cclass: cclass.name)
 
 # disable too-many-instance-attributes since this is a temporary character sheet that needs
 # to hold a lot of attributes
@@ -111,11 +111,11 @@ class TemporaryCharacterSheet:
             f" {self.clothing} clothing."
         )
 
-        self.hp_max = 10 + self.cclass.health_dice[1]
+        self.hp_max = 10 + self.cclass.stat_dice.health_dice[1]
         self.hp = self.hp_max
-        self.mana_max = 10 + self.cclass.mana_dice[1]
+        self.mana_max = 10 + self.cclass.stat_dice.mana_dice[1]
         self.mana = self.mana_max
-        self.stamina_max = 10 + self.cclass.stamina_dice[1]
+        self.stamina_max = 10 + self.cclass.stat_dice.stamina_dice[1]
         self.stamina = self.stamina_max
 
         # random equipment

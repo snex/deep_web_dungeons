@@ -10,8 +10,8 @@ from evennia.utils.test_resources import BaseEvenniaTest
 
 from typeclasses import objects
 from world import chargen, enums
-from world.characters.classes import CharacterClasses
-from world.characters.races import Races
+from world.characters.classes import CHARACTER_CLASSES
+from world.characters.races import RACES
 
 
 class CharacterGenerationTest(BaseEvenniaTest):
@@ -28,7 +28,7 @@ class CharacterGenerationTest(BaseEvenniaTest):
 
         self.choice_patcher = patch("random.choice")
         self.mock_choice = self.choice_patcher.start()
-        self.mock_choice.side_effect = ["female", Races.Human, CharacterClasses.Warrior]
+        self.mock_choice.side_effect = ["female", RACES["human"], CHARACTER_CLASSES["warrior"]]
 
         self.chargen = chargen.TemporaryCharacterSheet()
 
@@ -80,9 +80,9 @@ class CharacterGenerationTest(BaseEvenniaTest):
     def test_swap_race(self):
         """ Test changing character race. """
         base_str = self.chargen.strength
-        self.chargen.swap_race(Races.Orc)
+        self.chargen.swap_race(RACES["orc"])
         self.assertEqual(self.chargen.strength, base_str + 2)  # Orc bonus is +2
-        self.chargen.swap_race(Races.Elf)
+        self.chargen.swap_race(RACES["elf"])
         self.assertEqual(self.chargen.strength, base_str - 1)  # Elf bonus is -1
-        self.chargen.swap_race(Races.Human)
+        self.chargen.swap_race(RACES["human"])
         self.assertEqual(self.chargen.strength, base_str) # Back to base

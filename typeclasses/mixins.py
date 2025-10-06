@@ -11,8 +11,8 @@ from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import lazy_property
 
 from world.buffs import AbstractBuffHandler
-from world.characters.classes import CharacterClasses, CharacterClass
-from world.characters.races import Races, Race
+from world.characters.classes import CHARACTER_CLASSES, CharacterClass
+from world.characters.races import RACES, Race
 from world.equipment import EquipmentHandler
 from world.levelling import LevelsHandler
 from world.enums import Ability
@@ -30,7 +30,7 @@ class HasRaceMixin:
         """ Return character's race. """
         race = self.ndb.race
         if race is None:
-            race = Races.get(self.db.race_key)
+            race = RACES.get(self.db.race_key)
             self.ndb.race = race
 
         return race
@@ -56,7 +56,7 @@ class HasCClassMixin:
         """ Return character's CharacterClass. """
         cclass = self.ndb.cclass
         if cclass is None:
-            cclass = CharacterClasses.get(self.db.cclass_key)
+            cclass = CHARACTER_CLASSES.get(self.db.cclass_key)
             self.ndb.cclass = cclass
 
         return cclass

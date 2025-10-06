@@ -81,7 +81,7 @@ class LevelsHandler:
     def _level_hp(self):
         min_hp, max_hp = (1, 6)
         if cclass := self.obj.cclass:
-            min_hp, max_hp = cclass.health_dice
+            min_hp, max_hp = cclass.stat_dice.health_dice
 
         is_pc = self.obj.is_pc
         if is_pc:
@@ -98,7 +98,7 @@ class LevelsHandler:
     def _level_mana(self):
         min_mana, max_mana = (1, 6)
         if cclass := self.obj.cclass:
-            min_mana, max_mana = cclass.mana_dice
+            min_mana, max_mana = cclass.stat_dice.mana_dice
 
         is_pc = self.obj.is_pc
         if is_pc:
@@ -112,7 +112,7 @@ class LevelsHandler:
     def _level_stamina(self):
         min_stamina, max_stamina = (1, 6)
         if cclass := self.obj.cclass:
-            min_stamina, max_stamina = cclass.stamina_dice
+            min_stamina, max_stamina = cclass.stat_dice.stamina_dice
 
         is_pc = self.obj.is_pc
         if is_pc:

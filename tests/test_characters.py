@@ -6,8 +6,8 @@ Test characters.
 from unittest.mock import patch
 
 from evennia.utils.test_resources import EvenniaTest
-from world.characters.classes import CharacterClasses
-from world.characters.races import Races
+from world.characters.classes import CHARACTER_CLASSES
+from world.characters.races import RACES
 
 
 class TestCharacters(EvenniaTest):
@@ -21,16 +21,16 @@ class TestCharacters(EvenniaTest):
     def test_cclass(self):
         """ Test character classes work. """
         self.char1.db.cclass_key = "paladin"
-        self.assertEqual(self.char1.cclass, CharacterClasses.Paladin)
-        self.char1.ndb.cclass = CharacterClasses.Warrior
-        self.assertEqual(self.char1.cclass, CharacterClasses.Warrior)
+        self.assertEqual(self.char1.cclass, CHARACTER_CLASSES["paladin"])
+        self.char1.ndb.cclass = CHARACTER_CLASSES["warrior"]
+        self.assertEqual(self.char1.cclass, CHARACTER_CLASSES["warrior"])
 
     def test_race(self):
         """ Test races work. """
         self.char1.db.race_key = "dwarf"
-        self.assertEqual(self.char1.race, Races.Dwarf)
-        self.char1.ndb.race = Races.Human
-        self.assertEqual(self.char1.race, Races.Human)
+        self.assertEqual(self.char1.race, RACES["dwarf"])
+        self.char1.ndb.race = RACES["human"]
+        self.assertEqual(self.char1.race, RACES["human"])
 
     def test_hurt_level(self):
         """ Test hurt_level text. """
