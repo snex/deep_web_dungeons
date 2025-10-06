@@ -1,3 +1,5 @@
+""" Item prototypes """
+
 from world.enums import WieldLocation, CombatRange, Ability, DefenseType
 
 BASE_WEAPON = {

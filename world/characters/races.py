@@ -1,8 +1,10 @@
-from dataclasses import dataclass
+""" Races list. """
 
+from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Race:
+    """ Dataclass for a race. """
     key: str
     name: str
     desc: str
@@ -13,11 +15,9 @@ class Race:
     def __str__(self):
         return self.name
 
-
-# TODO Write good descriptions
-
-
 class Races:
+    """ List of all races. """
+
     _cached_dict = None
 
     Human = Race(
@@ -86,19 +86,24 @@ class Races:
     @classmethod
     def _get_cached_dict(cls):
         if not cls._cached_dict:
-            new_dict = {value.key: value for value in cls.__dict__.values() if isinstance(value, Race)}
+            new_dict = {
+                value.key: value for value in cls.__dict__.values() if isinstance(value, Race)
+            }
             cls._cached_dict = new_dict
 
         return cls._cached_dict
 
     @classmethod
     def items(cls):
+        """ Return all races keyed by key. """
         return cls._get_cached_dict().items()
 
     @classmethod
     def values(cls):
+        """ Return all races. """
         return cls._get_cached_dict().values()
 
     @classmethod
     def get(cls, key):
+        """ Return the race by key. """
         return cls._get_cached_dict().get(key)

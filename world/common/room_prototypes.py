@@ -1,3 +1,5 @@
+""" room prototypes """
+
 AINNEVE_XYZ_ROOM = {
     "prototype_parent": "xyz_room",
     "prototype_key": "ainneve_xyz_room",

@@ -1,7 +1,9 @@
+""" riverport is the base town where players exist. """
+
 from evennia.contrib.grid.xyzgrid import xymap_legend
 
-# Roads
 class Intersection(xymap_legend.MapNode):
+    """ An intersection is a 4-way node. """
     display_symbol = "#"
     prototype = {
             "prototype_parent": "riverport_xyz_room",
@@ -10,6 +12,7 @@ class Intersection(xymap_legend.MapNode):
         }
 
 class RoadNode(xymap_legend.MapNode):
+    """ A road is a node with nothing really interesting in it. """
     display_symbol = "#"
     prototype = {
             "prototype_parent": "riverport_xyz_room",
@@ -18,13 +21,15 @@ class RoadNode(xymap_legend.MapNode):
         }
 
 class FountainNode(xymap_legend.MapNode):
+    """ The fountain is where new players spawn. """
     display_symbol = "|b⇈|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
+# TODO: delete
 class GateNode(xymap_legend.MapNode):
-    # Note: these nodes will need to be manually connected to the overworld
+    """ A gate to the overworld that no longer exists. """
     display_symbol = "#"
     prototype = {
             "prototype_parent": "riverport_xyz_room",
@@ -34,6 +39,7 @@ class GateNode(xymap_legend.MapNode):
         }
 
 class HouseNode(xymap_legend.MapNode):
+    """ A regular NPC house. """
     display_symbol = "|C∆|n"
     prototype = {
             "prototype_parent": "riverport_xyz_room",
@@ -42,48 +48,56 @@ class HouseNode(xymap_legend.MapNode):
         }
 
 class ChiefHouseNode(HouseNode):
+    """ The chief hands out quests. """
     display_symbol = "|g♔|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
 class TavernNode(xymap_legend.MapNode):
+    """ Taverns can give clues on what to do. """
     display_symbol = "|c♫|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
 class BankNode(xymap_legend.MapNode):
+    """ Player bank where they can store items they can't hold. """
     display_symbol = "|y$|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
 class FarmStoreNode(xymap_legend.MapNode):
+    """ Store that sells farm items. """
     display_symbol = "|g⚶|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
 class FoodStoreNode(xymap_legend.MapNode):
+    """ Store that sells food items. """
     display_symbol = "|g♨|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
 class ItemStoreNode(xymap_legend.MapNode):
+    """ Store that sells basic items. """
     display_symbol = "|r⚔|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
 class MagicStoreNode(xymap_legend.MapNode):
+    """ Store that sells magic gear. """
     display_symbol = "|r🜛|n"
     prototype = {
         "prototype_parent": "riverport_xyz_room"
     }
 
 class BridgeNode(xymap_legend.MapNode):
+    """ Just like a road node but over water. """
     display_symbol = "Ξ"
     prototype = {
             "prototype_parent": "riverport_xyz_room",
@@ -92,6 +106,7 @@ class BridgeNode(xymap_legend.MapNode):
         }
 
 class BridgeLink(xymap_legend.MapLink):
+    """ Link node but a bridge over water. """
     symbol = "Ξ"
     display_symbol = "Ξ"
     directions = { 'e': 'w', 'w': 'e' }
@@ -500,4 +515,3 @@ XYMAP_DATA = {
     "prototypes": PROTOTYPES,
     "options": MAP_OPTIONS
 }
-

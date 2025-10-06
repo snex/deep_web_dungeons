@@ -1,3 +1,4 @@
+""" Wield/Wear help commands """
 from commands.game import CmdWieldOrWear
 
 HELP_ENTRY_DICTS = [

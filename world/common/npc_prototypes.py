@@ -1,3 +1,5 @@
+""" NPC prototypes """
+
 BASE_NPC = {
     "prototype_key": "base_npc",
     "typeclass": "typeclasses.npcs.NPC"

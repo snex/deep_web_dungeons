@@ -15,10 +15,9 @@ services are started last in the Server startup process.
 """
 
 
-def start_plugin_services(server):
+def start_plugin_services(_server):
     """
     This hook is called by Evennia, last in the Server startup process.
 
     server - a reference to the main server application.
     """
-    pass

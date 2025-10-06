@@ -1,3 +1,5 @@
+""" Mob prototypes """
+
 import random
 
 BASE_MOB = {

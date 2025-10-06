@@ -2,8 +2,11 @@ r"""
 Evennia settings file.
 """
 
+# pylint: disable=wildcard-import
+
 # Use the defaults from Evennia unless explicitly overridden
-from evennia.settings_default import *
+# disable pylint warning here as these are constants used to store settings
+from evennia.settings_default import * # pylint: disable=unused-wildcard-import
 
 ######################################################################
 # Evennia base server config
@@ -56,3 +59,5 @@ try:
     from server.conf.secret_settings import *
 except ImportError:
     print("secret_settings.py file not found or failed to import.")
+
+# pylint: enable=wildcard-import

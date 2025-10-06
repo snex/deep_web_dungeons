@@ -1,9 +1,12 @@
+""" Base class for Mobs """
+
 from evennia.prototypes.spawner import spawn
 from evennia.typeclasses.attributes import AttributeProperty
 from typeclasses.characters import BaseCharacter
 
 
 class BaseMob(BaseCharacter):
+    """ Base class for Mobs """
     starting_equipment_prototypes = AttributeProperty()
     mob_scaling = AttributeProperty()
 
@@ -20,6 +23,7 @@ class BaseMob(BaseCharacter):
             self.equipment.move(eq)
 
     def scale_to_level(self, level: int):
+        """ Scale the mob to the player's level. """
         if level <= 1:
             return
 

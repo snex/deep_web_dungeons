@@ -1,11 +1,14 @@
-import os
-import tracery
+""" Generate insults using tracery. """
+
 from random import randrange
+
+import tracery
 from tracery.modifiers import base_english
 
 from .dialog_base import DialogBase
 
 class Insult(DialogBase):
+    """ Class for generating insults using tracery. """
     def __init__(self, target, gender='none'):
         self.target = target
         self.gender = gender
@@ -100,7 +103,8 @@ class Insult(DialogBase):
                 "#intransitive_action#",
                 "#transitive_action#",
                 "#borrowed_action#",
-                f"promised to buy {randrange(10,100)} #object_phys.s# from #indifferent_victim# but then never paid",
+                f"promised to buy {randrange(10,100)} #object_phys.s# from #indifferent_victim#"
+                    " but then never paid",
                 "#friendly_verb# #bad_guy#",
                 "tried to sell #bad_thing# to #indifferent_victim#",
                 "#celebratory_verb# #bad_event#",
@@ -112,6 +116,7 @@ class Insult(DialogBase):
         }
 
     def generate_insult(self):
+        """ Generates an insult based on the tracery grammar. """
         grammar = tracery.Grammar(self.rules)
         grammar.add_modifiers(base_english)
         grammar.add_modifiers(self._possessive_modifiers())

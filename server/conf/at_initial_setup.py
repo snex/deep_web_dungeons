@@ -17,11 +17,10 @@ from django.conf import settings
 
 from evennia.contrib.grid.xyzgrid.launchcmd import xyzcommand
 from evennia.contrib.grid.xyzgrid.xyzgrid import get_xyzgrid
-from evennia.utils.create import create_object
-from evennia.utils.search import search_object_by_tag
-
+from evennia.utils.create import create_script
 
 def at_initial_setup():
+    """ When server starts for the first time """
     maps_list = settings.XYZGRID_MAP_LIST
     xyzcommand("add",*maps_list)
 
@@ -34,7 +33,6 @@ def at_initial_setup():
     grid.log = _log
     grid.spawn(xyz=("*", "*", "*"))
 
-    from evennia.utils.create import create_script
     create_script(
         typeclass="typeclasses.scripts.GlobalRecoveryScript",
         key="Recovery",
@@ -43,7 +41,3 @@ def at_initial_setup():
         persistent=False,
         autostart=True
     )
-
-    # Ensure the encounter script is created
-    from world.encounters.script import EncounterScript
-    EncounterScript.get()
