@@ -74,3 +74,34 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         super().at_cmdset_creation()
         self.add(CmdCharCreate()) # Override default creation
         self.add(CmdPrefs())
+
+class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
+    """
+    Command set available to the Session before being logged in.  This
+    holds commands like creating a new account, logging in, etc.
+    """
+
+    key = "DefaultUnloggedin"
+
+    def at_cmdset_creation(self):
+        """
+        Populates the cmdset
+        """
+        self.at_cmdset_creation()
+
+class SessionCmdSet(default_cmds.SessionCmdSet):
+    """
+    This cmdset is made available on Session level once logged in. It
+    is empty by default.
+    """
+
+    key = "DefaultSession"
+
+    def at_cmdset_creation(self):
+        """
+        This is the only method defined in a cmdset, called during
+        its creation. It should populate the set with command instances.
+        As and example we just add the empty base `Command` object.
+        It prints some info.
+        """
+        self.at_cmdset_creation()
