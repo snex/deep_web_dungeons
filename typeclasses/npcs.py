@@ -40,8 +40,12 @@ class NPC(BaseCharacter):
             direction.key for direction in self.location.exits
             if direction.key in allowed_directions
         ]
-        wander_dir = choice(candidates)
-        self.execute_cmd(wander_dir)
+
+        if candidates:
+            wander_dir = choice(candidates)
+            self.execute_cmd(wander_dir)
+        else:
+            self.location.msg_contents(f"$You() $conj(try) to escape but there is nowhere to go!", from_obj=self)
 
 class WanderingNPC(NPC):
     """
@@ -99,7 +103,7 @@ class InsultNPC(NPC):
 
         if self.combat:
             self.combat.end_combat()
-        attacker.msg(f"{self.key} swiftly dodges your attack.")
+        self.location.msg_contents(f"$You() swiftly $conj(dodge) a pathetic attack from $You(attacker).", from_obj=self, mapping={"attacker": attacker})
         self._say_insult(attacker)
 
     def insult(self):
