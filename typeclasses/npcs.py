@@ -45,7 +45,10 @@ class NPC(BaseCharacter):
             wander_dir = choice(candidates)
             self.execute_cmd(wander_dir)
         else:
-            self.location.msg_contents(f"$You() $conj(try) to escape but there is nowhere to go!", from_obj=self)
+            self.location.msg_contents(
+                "$You() $conj(try) to escape but there is nowhere to go!",
+                from_obj=self
+            )
 
 class WanderingNPC(NPC):
     """
@@ -103,7 +106,11 @@ class InsultNPC(NPC):
 
         if self.combat:
             self.combat.end_combat()
-        self.location.msg_contents(f"$You() swiftly $conj(dodge) a pathetic attack from $You(attacker).", from_obj=self, mapping={"attacker": attacker})
+        self.location.msg_contents(
+            "$You() swiftly $conj(dodge) a pathetic attack from $You(attacker).",
+            from_obj=self,
+            mapping={"attacker": attacker}
+        )
         self._say_insult(attacker)
 
     def insult(self):
