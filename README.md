@@ -26,8 +26,11 @@ Forked from [Ainneve](https://github.com/evennia/ainneve)
 * Shitposter - Buff / Debuff
     * Epic Troll
     * Dank Meme
+* Conspiracy Theorist - Buff / Debuff
+    * Jet Fuel Can't Melt Steel Beams
+    * Fake Moon Landing
 * Pusher - Healer
-    * Need ideas for skills (drug related)
+    * Need ideas for skills (drug related) - maybe similar to an alchemist who mixes ingredients to discover effects?
 
 ## Currency
 
