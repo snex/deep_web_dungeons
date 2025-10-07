@@ -27,6 +27,7 @@ AUTO_PUPPET_ON_LOGIN = False
 MAX_NR_CHARACTERS = 5
 STATICFILES_DIRS = []
 
+CMDSET_SESSION = "commands.default_cmdsets.AccountCmdSet"
 FILE_HELP_ENTRY_MODULES = [ 'world.help.combat_help' ]
 BASE_CHARACTER_TYPECLASS = "typeclasses.characters.Character"
 
