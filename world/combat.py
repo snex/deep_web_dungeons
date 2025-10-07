@@ -427,8 +427,7 @@ class CombatHandler:
         """
 
         weapon = attacker.weapon
-        min_damage = weapon.min_damage
-        max_damage = weapon.max_damage
+        damage_roll = weapon.damage_roll
         stamina_cost = weapon.stamina_cost
         cooldown = weapon.cooldown
 
@@ -453,7 +452,7 @@ class CombatHandler:
 
         defense_roll = 5 + target_size_penalty + range_penalty
         if attack_roll >= defense_roll:
-            damage = random.randrange(min_damage, max_damage)
+            damage = rules.dice.roll(damage_roll)
             damage += attacker.strength
 
             # multiply the result by the Attackers Aggression factor (round up)
@@ -497,16 +496,13 @@ class CombatHandler:
         """
 
         weapon = attacker.weapon
+        damage_roll = weapon.damage_roll
 
         if attacker.weapon.is_throwable is not None:
             # set the Base Physical Damage Range to 1-2 and the Base Stamina Cost to 4.
-            min_damage = 1
-            max_damage = 2
             stamina_cost = 4
             cooldown = 4
         else:
-            min_damage = weapon.min_damage
-            max_damage = weapon.max_damage
             stamina_cost = weapon.stamina_cost
             cooldown = weapon.cooldown
 
@@ -531,7 +527,7 @@ class CombatHandler:
 
         defense_roll = 5 + target_size_penalty + range_penalty
         if attack_roll >= defense_roll:
-            damage = random.randrange(min_damage, max_damage)
+            damage = rules.dice.roll(damage_roll)
             damage += attacker.cunning
 
             # multiply the result by the Attackers Aggression factor (round up)
