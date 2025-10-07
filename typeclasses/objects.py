@@ -163,8 +163,7 @@ class WeaponObject(Object):
     # what defense stat of the enemy it must defeat
     defense_type: Ability = AttributeProperty(DefenseType.ARMOR)
 
-    min_damage: int = AttributeProperty(1)
-    max_damage: int = AttributeProperty(4)
+    damage_roll: str = AttributeProperty("1d4")
     stamina_cost: int = AttributeProperty(2)
     cooldown: int = AttributeProperty(2)
 
