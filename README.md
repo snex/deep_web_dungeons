@@ -14,22 +14,22 @@ Forked from [Ainneve](https://github.com/evennia/ainneve)
 
 ## Classes
 
-* Antifa Rioter - Melee tank
+* Antifa Rioter - Melee tank (Pri: STR, Sec: CUN)
     * Need ideas for skills
-* Hacker - Ranged DPS
+* Hacker - Ranged DPS (Pri: WIL, Sec: CUN)
     * Deploy Script
     * PQ-Encryption
     * Hack the Gibson
-* Gooner - Ranged DPS
+* Gooner - Ranged DPS (Pri: CUN, Sec: STR)
     * Spooge
     * Dildo Toss
-* Shitposter - Buff / Debuff
+* Shitposter - Buff / Debuff (Pri: CUN, Sec: WIL)
     * Epic Troll
     * Dank Meme
-* Conspiracy Theorist - Buff / Debuff
+* Conspiracy Theorist - Buff / Debuff (Pri: WIL, Sec: CUN)
     * Jet Fuel Can't Melt Steel Beams
     * Fake Moon Landing
-* Pusher - Healer
+* Pusher - Healer (Pri: WIL, Sec: STR)
     * Need ideas for skills (drug related) - maybe similar to an alchemist who mixes ingredients to discover effects?
 
 ## Currency
