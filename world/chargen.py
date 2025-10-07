@@ -254,7 +254,7 @@ class TemporaryCharacterSheet:
 
 
 # chargen menu
-def node_chargen(_caller, raw_string, **kwargs):
+def node_chargen(caller, raw_string, **kwargs):
     """
     This node is the central point of chargen. We return here to see our current
     sheet and break off to edit different parts of it.
@@ -272,7 +272,7 @@ def node_chargen(_caller, raw_string, **kwargs):
     return text, options
 
 
-def _update_name(_caller, raw_string, **kwargs):
+def _update_name(caller, raw_string, **kwargs):
     """
     Used by node_change_name below to check what user entered and update the name if appropriate.
 
@@ -285,7 +285,7 @@ def _update_name(_caller, raw_string, **kwargs):
     return "node_chargen", kwargs
 
 
-def node_change_name(_caller, raw_string, **kwargs):
+def node_change_name(caller, raw_string, **kwargs):
     """
     Change the random name of the character.
 
@@ -346,7 +346,7 @@ def start_chargen(caller, session=None):
         startnode_input=("sgsg", {"tmp_character": tmp_character}),
     )
 
-def node_show_genders(_caller, raw_string, **kwargs):
+def node_show_genders(caller, raw_string, **kwargs):
     """Let user select a gender"""
     text = """\
         Select a |cGender|n.
@@ -377,7 +377,7 @@ def node_apply_gender(caller, raw_string, **kwargs):
 
     return node_chargen(caller, '', tmp_character=tmp_character)
 
-def node_show_classes(_caller, raw_string, **kwargs):
+def node_show_classes(caller, raw_string, **kwargs):
     """Starting page and Class listing."""
     text = """\
         Select a |cClass|n.
@@ -433,7 +433,7 @@ def node_apply_class(caller, raw_string, **kwargs):
     return node_chargen(caller, '', tmp_character=tmp_character)
 
 
-def node_show_races(_caller, raw_string, **kwargs):
+def node_show_races(caller, raw_string, **kwargs):
     """Starting page and Class listing."""
     text = """\
         Select a |cRace|n.
