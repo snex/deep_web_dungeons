@@ -49,7 +49,6 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdTalk())
 
         # combat commands
-        # self.add(CombatCmdSet()) # combat-specific commands
         self.add(CmdInitiateCombat())
         self.add(CmdHit())
         self.add(CmdShoot())
@@ -83,11 +82,13 @@ class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
 
     key = "DefaultUnloggedin"
 
-    def at_cmdset_creation(self):
+    # disable useless-parent-delegation pylint here because this goofy setup is required
+    #     for the app to run for some reason
+    def at_cmdset_creation(self): # pylint: disable=useless-parent-delegation
         """
         Populates the cmdset
         """
-        self.at_cmdset_creation()
+        super().at_cmdset_creation()
 
 class SessionCmdSet(default_cmds.SessionCmdSet):
     """
@@ -97,11 +98,13 @@ class SessionCmdSet(default_cmds.SessionCmdSet):
 
     key = "DefaultSession"
 
-    def at_cmdset_creation(self):
+    # disable useless-parent-delegation pylint here because this goofy setup is required
+    #     for the app to run for some reason
+    def at_cmdset_creation(self): # pylint: disable=useless-parent-delegation
         """
         This is the only method defined in a cmdset, called during
         its creation. It should populate the set with command instances.
         As and example we just add the empty base `Command` object.
         It prints some info.
         """
-        self.at_cmdset_creation()
+        super().at_cmdset_creation()
