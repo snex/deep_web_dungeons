@@ -2,7 +2,6 @@
 Combat Rules engine.
 """
 
-import random
 from typing import Self, TYPE_CHECKING
 from world import rules
 
