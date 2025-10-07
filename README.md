@@ -6,7 +6,7 @@ Forked from [Ainneve](https://github.com/evennia/ainneve)
 # Roadmap
 ## Races
 
-* Humans - Yes we still have those. +2 to player-chosen attribute, -1 to player chosen attribute.
+* Humans - Yes we still have those. +2 to player-chosen attribute, -2 to player chosen attribute.
 * LLM Robot - A robot with an LLM brain. +2 WIL, -2 CUN
 * Android - A hybrid between a human and an LLM robot. +1 WIL, -1 CUN
 * Furry - A humanoid animal... thing. +2 CUN, -2 STR
