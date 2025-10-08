@@ -10,6 +10,7 @@ Forked from [Ainneve](https://github.com/evennia/ainneve)
 * LLM Robot - A robot with an LLM brain. +2 WIL, -2 CUN
 * Android - A hybrid between a human and an LLM robot. +1 WIL, -1 CUN
 * Furry - A humanoid animal... thing. +2 CUN, -2 STR
+* Toxic Mutant - A human or furry that fell into one of the many toxic sludge lakes or rivers throughout the land. +2 STR, -2 WIL
 * ... need more ideas here
 
 ## Classes
