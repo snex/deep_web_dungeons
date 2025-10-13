@@ -96,7 +96,7 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         """ Test that displaying the loadout works. """
         self.assertEqual(
             self.char1.equipment.display_loadout(),
-            "You are fighting with your bare fists and have no shield.\n"
+            "You are fighting with your |xbare fists|n and have no shield.\n"
             "You wear no armor and no helmet."
         )
         self.char1.equipment.move(self.weapon)

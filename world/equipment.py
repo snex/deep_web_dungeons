@@ -168,7 +168,7 @@ class EquipmentHandler:
     @property
     def weapon(self):
         """
-        Conveniently get the currently active weapon or rune stone.
+        Conveniently get the currently active weapon.
 
         Returns:
             obj or None: The weapon. None if unarmored.
@@ -190,6 +190,16 @@ class EquipmentHandler:
         """ Return the currently active shield. """
         return self.slots[WieldLocation.SHIELD_HAND]
 
+    @property
+    def armor_item(self):
+        """ Return the currently worn armor. """
+        return self.slots[WieldLocation.BODY]
+
+    @property
+    def  helmet(self):
+        """ Return the currently worn helmet. """
+        return self.slots[WieldLocation.HEAD]
+
     def display_loadout(self):
         """
         Get a visual representation of your current loadout.
@@ -199,7 +209,7 @@ class EquipmentHandler:
 
         """
         slots = self.slots
-        weapon_str = "You are fighting with your bare fists"
+        weapon_str = "You are fighting with your |xbare fists|n"
         shield_str = " and have no shield."
         armor_str = "You wear no armor"
         helmet_str = " and no helmet."
@@ -251,7 +261,7 @@ class EquipmentHandler:
 
     def move(self, obj):
         """
-        Moves item to the place it things it should be in - this makes use of the object's wield
+        Moves item to the place it thinks it should be in - this makes use of the object's wield
         slot to decide where it goes. The item is assumed to already be in the backpack.
 
         Args:

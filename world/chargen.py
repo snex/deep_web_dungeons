@@ -11,25 +11,23 @@ from evennia.contrib.grid.xyzgrid.xyzgrid import get_xyzgrid
 from evennia.objects.models import ObjectDB
 from evennia.prototypes.spawner import spawn
 from evennia.utils.evmenu import EvMenu
-from evennia.utils.logger import log_err
+from evennia.utils.evtable import EvTable
+from evennia.utils.utils import inherits_from
 from typeclasses.characters import Character
-from world.characters.classes import CHARACTER_CLASSES, CharacterClass
+from world.characters.classes import CHARACTER_CLASSES
 from world.characters.races import RACES, Race
+from world.enums import Ability
+from world.utils import each_slice
 from .random_tables import chargen_tables
 from .rules import dice
 
-_ABILITIES = {
-    "STR": "strength",
-    "WIL": "will",
-    "CUN": "cunning",
-}
 
 _TEMP_SHEET = """
 {name} the {gender} {race} {cclass}
 
-STR +{strength}
-CUN +{cunning}
-WIL +{will}
+STR {str_plus_minus}{strength}
+CUN {cun_plus_minus}{cunning}
+WIL {wil_plus_minus}{will}
 
 {description}
 
@@ -37,8 +35,15 @@ Your belongings:
 {equipment}
 """
 
-_SORTED_RACES = sorted(list(RACES.values()), key=lambda race: race.name)
-_SORTED_CLASSES = sorted(list(CHARACTER_CLASSES.values()), key=lambda cclass: cclass.name)
+_ABILITIES = [a.value for a in Ability]
+_APPEARANCE_OPTIONS = [
+    "physique",
+    "face",
+    "skin",
+    "hair",
+    "clothing",
+    "speech",
+]
 
 # disable too-many-instance-attributes since this is a temporary character sheet that needs
 # to hold a lot of attributes
@@ -51,66 +56,111 @@ class TemporaryCharacterSheet:
     is not losing their half-created character.
     """
 
-    def _initial_stats_for_class(self, cclass: CharacterClass) -> dict[str, int]:
-        stats = {"strength": 1, "cunning": 1, "will": 1}
-        stats[cclass.primary_stat] = 3
-        stats[cclass.secondary_stat] = 2
-        return stats
+    def __init__(self):
+        self.name = self.desc = self.physical_appearance = ""
+        self.gender = "genderless"
 
-    def _random_gender(self):
-        return random.choice(["male", "female"])
+        self.race = "raceless"
+        self.cclass = "jobless bum"
 
-    def _random_class(self) -> CharacterClass:
-        return random.choice(_SORTED_CLASSES)
+        self.strength = 0
+        self.will = 0
+        self.cunning = 0
 
-    def _random_race(self) -> Race:
-        return random.choice(_SORTED_RACES)
+        # make it easy to apply and revert bonuses if the user changes their mind and goes back
+        self.ability_bonus_stack = []
 
-    def swap_race(self, new_race: Race):
-        """ Swap current race with player's chosen race. """
-        # Remove previous modifiers
-        self.strength -= self.race.strength_mod
-        self.will -= self.race.will_mod
-        self.cunning -= self.race.cunning_mod
+        self.hp = self.hp_max = 1
+        self.mana = self.mana_max = 1
+        self.stamina = self.stamina_max = 1
+
+        self.weapon = self.weapon_desc = ""
+        self.shield = self.shield_desc = ""
+        self.helmet = self.helmet_desc = ""
+        self.armor = self.armor_desc = ""
+
+        self.backpack = [
+            "ration",
+            "ration",
+            "ration",
+        ]
+
+        self.physique = self.face = self.skin = self.hair = self.clothing = self.speech = "RANDOM"
+
+    def random_name(self):
+        """ return a random name from the roll tables """
+        return dice.roll_random_table("1d282", chargen_tables["name"])
+
+    def random_gender(self):
+        """ return a random gender """
+        return random.choice(["male", "female", "other-gendered", "non-gendered"])
+
+    def random_race(self):
+        """ return a random Race """
+        return random.choice(list(RACES.values()))
+
+    def random_cclass(self):
+        """ return a random CharacterClass """
+        return random.choice(list(CHARACTER_CLASSES.values()))
+
+    def random_appearance_attribute(self, attribute):
+        """ return a random single physical_appearance attribute from the roll tables """
+        return dice.roll_random_table("1d20", chargen_tables.get(attribute, "physique"))
+
+    def random_appearance(self):
+        """
+        Generate a completely random physical_appearance
+            and apply it to the TemporaryCharacterSheet
+        """
+        self.physique = self.random_appearance_attribute("physique")
+        self.face = self.random_appearance_attribute("face")
+        self.skin = self.random_appearance_attribute("skin")
+        self.hair = self.random_appearance_attribute("hair")
+        self.clothing = self.random_appearance_attribute("clothing")
+        self.speech = self.random_appearance_attribute("speech")
+
+        self.apply_appearance()
+
+    def apply_ability_bonus(self, ability, mod):
+        """
+        Add an ability bonus to the stack (for possible later revert)
+            and apply it to the TemporaryCharacterSheet
+        """
+        self.ability_bonus_stack.append((ability, mod))
+        setattr(self, ability, getattr(self, ability) + mod)
+
+    def revert_ability_bonuses(self):
+        """ Revert the ability bonuses recorded on the stack. """
+        while self.ability_bonus_stack:
+            ability, mod = self.ability_bonus_stack.pop()
+            setattr(self, ability, getattr(self, ability) - mod)
+
+    def apply_race(self, new_race):
+        """ Apply the new race, removing an old race if necessary. """
+
+        if inherits_from(self.race, Race):
+            self.revert_ability_bonuses()
+
+        if not new_race:
+            self.race = "raceless"
+            return
 
         self.race = new_race
+        self.apply_ability_bonus("strength", self.race.strength_mod)
+        self.apply_ability_bonus("cunning", self.race.cunning_mod)
+        self.apply_ability_bonus("will", self.race.will_mod)
 
-        # Apply new modifiers
-        # TODO This should be a trait modifier instead
-        self.strength += self.race.strength_mod
-        self.will += self.race.will_mod
-        self.cunning += self.race.cunning_mod
+    def apply_cclass(self, new_cclass):
+        """ Apply the new class, removing an old class if necessary. """
 
-    def __init__(self):
-        self.name = dice.roll_random_table("1d282", chargen_tables["name"])
-        self.gender = self._random_gender()
+        if not new_cclass:
+            self.hp_max = self.hp = self.mana_max = self.mana = self.stamina_max = self.stamina = 0
+            self.weapon = self.shield = self.helmet = self.armor = None
+            self.weapon_desc = self.shield_desc = self.helmet_desc = self.armor_desc = None
+            self.cclass = "jobless bum"
+            return
 
-        self.race = self._random_race()
-        self.cclass = self._random_class()
-
-        _stats = self._initial_stats_for_class(self.cclass)
-        self.strength = _stats["strength"]
-        self.will = _stats["will"]
-        self.cunning = _stats["cunning"]
-
-        self.strength += self.race.strength_mod
-        self.will += self.race.will_mod
-        self.cunning += self.race.cunning_mod
-
-        # physical attributes (only for rp purposes)
-        self.physique = dice.roll_random_table("1d20", chargen_tables["physique"])
-        self.face = dice.roll_random_table("1d20", chargen_tables["face"])
-        self.skin = dice.roll_random_table("1d20", chargen_tables["skin"])
-        self.hair = dice.roll_random_table("1d20", chargen_tables["hair"])
-        self.clothing = dice.roll_random_table("1d20", chargen_tables["clothing"])
-        self.speech = dice.roll_random_table("1d20", chargen_tables["speech"])
-
-        self.desc = (
-            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face,"
-            f" {self.skin} skin, {self.hair} hair, {self.speech} speech and"
-            f" {self.clothing} clothing."
-        )
-
+        self.cclass = new_cclass
         self.hp_max = 10 + self.cclass.stat_dice.health_dice[1]
         self.hp = self.hp_max
         self.mana_max = 10 + self.cclass.stat_dice.mana_dice[1]
@@ -118,40 +168,67 @@ class TemporaryCharacterSheet:
         self.stamina_max = 10 + self.cclass.stat_dice.stamina_dice[1]
         self.stamina = self.stamina_max
 
-        # random equipment
-        self.armor = dice.roll_random_table("1d20", chargen_tables["armor"])
-        self.shield = dice.roll_random_table("1d20", chargen_tables["shield"])
-        self.helmet = dice.roll_random_table("1d20", chargen_tables["helmet"])
-        self.weapon = dice.roll_random_table("1d20", chargen_tables["starting weapon"])
+        # class-based starting equipment
+        self.weapon = new_cclass.starting_gear["weapon"]
+        self.weapon_desc = new_cclass.starting_gear["weapon_desc"]
+        self.shield = new_cclass.starting_gear["shield"]
+        self.shield_desc = new_cclass.starting_gear["shield_desc"]
+        self.helmet = new_cclass.starting_gear["helmet"]
+        self.helmet_desc = new_cclass.starting_gear["helmet_desc"]
+        self.armor = new_cclass.starting_gear["armor"]
+        self.armor_desc = new_cclass.starting_gear["armor_desc"]
 
-        self.backpack = [
-            "ration",
-            "ration",
-        ]
+    def apply_appearance_attribute(self, attribute, value):
+        """ apply one physical_appearance attribute to the TemporaryCharacterSheet """
+        setattr(self, attribute, value)
+
+    def apply_appearance(self):
+        """ apply the entire physical_appearance to the TemporaryCharacterSheet """
+        for appearance_option in _APPEARANCE_OPTIONS:
+            if getattr(self, appearance_option) == "RANDOM":
+                self.apply_appearance_attribute(
+                    appearance_option, self.random_appearance_attribute(appearance_option)
+                )
+
+        self.physical_appearance = (
+            f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face,"
+            f" {self.skin} skin, {self.hair} hair, {self.speech} speech and"
+            f" {self.clothing} clothing."
+        )
 
     def show_sheet(self):
         """
         Show a temp character sheet, a compressed version of the real thing.
 
         """
-        equipment = (self.armor, self.helmet, self.shield, self.weapon, self.backpack)
+        equipment_str = f"""
+Weapon:   {self.weapon_desc}
+Shield:   {self.shield_desc}
+Armor:    {self.armor_desc}
+Helmet:   {self.helmet_desc}
+Backpack: {', '.join((str(eq) for eq in self.backpack))}
+"""
 
         return _TEMP_SHEET.format(
             name=self.name,
             gender=self.gender,
+            str_plus_minus=("+" if self.strength >=0 else ""),
             strength=self.strength,
+            cun_plus_minus=("+" if self.cunning >=0 else ""),
             cunning=self.cunning,
+            wil_plus_minus=("+" if self.will >=0 else ""),
             will=self.will,
             race=self.race,
             cclass=self.cclass,
-            description=self.desc,
-            equipment=", ".join((str(eq) for eq in equipment)),
+            description=self.physical_appearance,
+            equipment=equipment_str
         )
 
     def _add_gear_to_new_character(self, new_character):
         if self.weapon:
             try:
                 weapon = spawn(self.weapon)
+                weapon[0].move_to(new_character, quiet=True, move_type="get")
                 new_character.equipment.move(weapon[0])
             except KeyError:
                 logger.log_err(
@@ -161,6 +238,7 @@ class TemporaryCharacterSheet:
         if self.armor:
             try:
                 armor = spawn(self.armor)
+                armor[0].move_to(new_character, quiet=True, move_type="get")
                 new_character.equipment.move(armor[0])
             except KeyError:
                 logger.log_err(
@@ -170,6 +248,7 @@ class TemporaryCharacterSheet:
         if self.shield:
             try:
                 shield = spawn(self.shield)
+                shield[0].move_to(new_character, quiet=True, move_type="get")
                 new_character.equipment.move(shield[0])
             except KeyError:
                 logger.log_err(
@@ -179,6 +258,7 @@ class TemporaryCharacterSheet:
         if self.helmet:
             try:
                 helmet = spawn(self.helmet)
+                helmet[0].move_to(new_character, quiet=True, move_type="get")
                 new_character.equipment.move(helmet[0])
             except KeyError:
                 logger.log_err(
@@ -188,7 +268,7 @@ class TemporaryCharacterSheet:
         for item in self.backpack:
             try:
                 item = spawn(item)
-                new_character.equipment.move(item[0])
+                item[0].move_to(new_character, quiet=True, move_type="get")
             except KeyError:
                 logger.log_err(f"[Chargen] Could not spawn Item: Prototype not found for '{item}'.")
 
@@ -199,7 +279,7 @@ class TemporaryCharacterSheet:
 
         """
         grid = get_xyzgrid()
-        start_location = grid.get_room(('12', '6', 'riverport'))
+        start_location = grid.get_room(('19', '9', 'control-station-7'))
         if start_location:
             # The room we got above is a queryset so we get it by index
             start_location = start_location[0]
@@ -210,9 +290,9 @@ class TemporaryCharacterSheet:
         permissions = settings.PERMISSION_ACCOUNT_DEFAULT
 
         # set the desc a final time to get the right details!
-        self.desc = (
+        self.physical_appearance = (
             f"{self.name} is a {self.gender} {self.race}, {self.physique} with a {self.face} face,"
-            f" {self.skin} skin, {self.hair} hair, {self.speech} speech, and"
+            f" {self.skin} skin, {self.hair} hair, {self.speech} speech and"
             f" {self.clothing} clothing."
         )
 
@@ -231,16 +311,17 @@ class TemporaryCharacterSheet:
                 ("cclass_key", self.cclass.key),
                 ("hp", self.hp),
                 ("hp_max", self.hp_max),
-                ("mana", self.hp),
-                ("mana_max", self.hp_max),
+                ("mana", self.mana),
+                ("mana_max", self.mana_max),
                 ("stamina", self.stamina),
                 ("stamina_max", self.stamina_max),
-                ("desc", self.desc),
+                ("physical_appearance", self.physical_appearance),
+                ("desc", ""),
             ),
         )
 
         if err:
-            log_err(f"Error during character creation: #{err}")
+            logger.log_err(f"Error during character creation: #{err}")
 
         new_character.locks.add(
             f"puppet:id({new_character.id}) or pid({account.id}) or perm(Developer) or"
@@ -252,48 +333,75 @@ class TemporaryCharacterSheet:
 
         return new_character
 
-
-# chargen menu
-def node_chargen(caller, raw_string, **kwargs):
+def start_chargen(caller, session=None):
     """
-    This node is the central point of chargen. We return here to see our current
-    sheet and break off to edit different parts of it.
+    This is a start point for spinning up the chargen from a menu.
     """
-    tmp_character = kwargs["tmp_character"]
-    options = [
-        {"desc": "Change your name", "goto": ("node_change_name", kwargs)},
-        {"desc": "Change your gender", "goto": ("node_show_genders", kwargs)},
-        {"desc": "Change your race", "goto": ("node_show_races", kwargs)},
-        {"desc": "Change your class", "goto": ("node_show_classes", kwargs)},
-        {"desc": "Accept and create character", "goto": ("node_apply_character", kwargs)},
-    ]
-    text = tmp_character.show_sheet()
+    menu_tree = {
+        "node_end_chargen": node_end_chargen,
+        "node_set_name": node_set_name,
+        "node_show_genders": node_show_genders,
+        "node_apply_gender": node_apply_gender,
+        "node_show_abilities": node_show_abilities,
+        "node_apply_ability": node_apply_ability,
+        "node_show_races": node_show_races,
+        "node_apply_race": node_apply_race,
+        "node_show_human_abilities": node_show_human_abilities,
+        "node_apply_human_abilities": node_apply_human_abilities,
+        "node_show_cclasses": node_show_cclasses,
+        "node_apply_cclass": node_apply_cclass,
+        "node_show_appearance": node_show_appearance,
+        "node_show_appearance_option": node_show_appearance_option,
+        "node_apply_appearance_option": node_apply_appearance_option,
+        "node_apply_appearance": node_apply_appearance,
+        "node_apply_character": node_apply_character,
+    }
 
-    return text, options
+    tmp_character = TemporaryCharacterSheet()
 
+    EvMenu(
+        caller,
+        menu_tree,
+        startnode="node_set_name",
+        session=session,
+        startnode_input=("", {"tmp_character": tmp_character}),
+    )
+
+def node_end_chargen(caller, raw_string, **kwargs):
+    """ End chargen and go back to the main menu. """
+
+    return "", None
 
 def _update_name(caller, raw_string, **kwargs):
     """
-    Used by node_change_name below to check what user entered and update the name if appropriate.
+    Used by node_set_name below to set the character's name.
+    If blank is sent in, a random name will be chosen.
 
     """
 
-    if raw_string and raw_string.strip() != '':
-        tmp_character = kwargs["tmp_character"]
+    tmp_character = kwargs["tmp_character"]
+    tmp_character.name = tmp_character.random_name()
+
+    if raw_string and raw_string.strip() != "":
         tmp_character.name = raw_string.strip().lower().capitalize()
 
-    return "node_chargen", kwargs
+    return "node_show_genders", kwargs
 
 
-def node_change_name(caller, raw_string, **kwargs):
+def node_set_name(caller, raw_string, **kwargs):
     """
-    Change the random name of the character.
+    Set the name of the character.
+    Choose a random name if the user enters nothing.
 
     """
+
     tmp_character = kwargs["tmp_character"]
 
+    if kwargs.get("go_back"):
+        tmp_character.gender = "genderless"
+
     text = (
-        f"Your current name is |w{tmp_character.name}|n. Enter a new name or leave empty to abort."
+        "Set a name for your character. Leave empty to have a random one chosen for you."
     )
     options = {"key": "_default", "goto": (_update_name, kwargs)}
 
@@ -316,45 +424,42 @@ def node_apply_character(caller, raw_string, **kwargs):
     return text, None
 
 
-def start_chargen(caller, session=None):
-    """
-    This is a start point for spinning up the chargen from a command later.
-    """
-    menu_tree = {
-        "node_chargen": node_chargen,
-        "node_change_name": node_change_name,
-        "node_apply_character": node_apply_character,
-        "node_show_genders": node_show_genders,
-        "node_apply_gender": node_apply_gender,
-        "node_show_classes": node_show_classes,
-        "node_select_class": node_select_class,
-        "node_apply_class": node_apply_class,
-        "node_show_races": node_show_races,
-        "node_select_race": node_select_race,
-        "node_apply_race": node_apply_race,
+def node_show_genders(caller, raw_string, **kwargs):
+    """ Let user select a gender. """
 
-    }
+    tmp_character = kwargs["tmp_character"]
 
-    # this generates all random components of the character
-    tmp_character = TemporaryCharacterSheet()
+    if kwargs.get("go_back"):
+        tmp_character.gender = "genderless"
+        tmp_character.strength = tmp_character.cunning = tmp_character.will = 0
 
-    EvMenu(
-        caller,
-        menu_tree,
-        startnode="node_chargen",
-        session=session,
-        startnode_input=("sgsg", {"tmp_character": tmp_character}),
+    gender_table = EvTable(
+        "Gender",
+        "Description",
+        table=[
+            ["|cMale|n", "|cFemale|n", "|cOther-Gendered|n", "|cNon-Gendered|n"],
+            [
+                "Your pronouns will be `he` `him` and `his`.",
+                "Your pronouns will be `she` `her` and `hers`.",
+                "You have a gender but nobody is sure what it is, least of all you. Your pronouns"
+                    " will be `they` `them` and `their`.",
+                "You have no gender at all. Your pronouns will be `it` and `its`.",
+            ],
+        ],
+        border="cells",
+        valign="t",
+        width=80,
     )
 
-def node_show_genders(caller, raw_string, **kwargs):
-    """Let user select a gender"""
-    text = """\
-        Select a |cGender|n.
+    text = f"""Your character so far:
+{tmp_character.show_sheet()}
 
-        There are no game mechanic differences between genders, but there may be roleplay/story differences.
+Select a |cGender|n. There are no game mechanic differences among genders, but there may be roleplay and story differences.
 
-        Select one by number below
-    """
+{gender_table}
+
+Select one by number below or Go Back.
+"""
 
     options = [
         {
@@ -364,128 +469,454 @@ def node_show_genders(caller, raw_string, **kwargs):
         {
             "desc": "|cFemale|n",
             "goto": ("node_apply_gender", {"gender": "female", **kwargs})
-        }
+        },
+        {
+            "desc": "|cOther-Gendered|n",
+            "goto": ("node_apply_gender", {"gender": "other-gendered", **kwargs})
+        },
+        {
+            "desc": "|cNon-Gendered|n",
+            "goto": ("node_apply_gender", {"gender": "non-gendered", **kwargs})
+        },
+        {
+            "desc": "Random",
+            "goto": ("node_apply_gender", {"gender": tmp_character.random_gender(), **kwargs})
+        },
+        {
+            "desc": "Go Back",
+            "goto": ("node_set_name", {"go_back": True, **kwargs})
+        },
+        {
+            "desc": "Cancel and Return to Main Menu",
+            "goto": ("node_end_chargen", {})
+        },
     ]
 
     return (text, ""), options
 
 def node_apply_gender(caller, raw_string, **kwargs):
     """ Apply the selected gender. """
+
     gender = kwargs.get('gender')
     tmp_character = kwargs["tmp_character"]
     tmp_character.gender = gender
 
-    return node_chargen(caller, '', tmp_character=tmp_character)
+    return node_show_abilities(caller, "", tmp_character=tmp_character)
 
-def node_show_classes(caller, raw_string, **kwargs):
-    """Starting page and Class listing."""
-    text = """\
-        Select a |cClass|n.
+def node_show_abilities(caller, raw_string, **kwargs):
+    """ Let user assign ability scores. """
 
-        Select one by number below to view its details, or |whelp|n
-        at any time for more info.
-    """
+    tmp_character = kwargs["tmp_character"]
 
-    options = [
+    if kwargs.get("go_back"):
+        tmp_character.strength = tmp_character.cunning = tmp_character.will = 0
+        tmp_character.race = "raceless"
+
+    abilities_selected = kwargs.pop("abilities_selected", [])
+    abilities_remaining = [ability for ability in _ABILITIES if ability not in abilities_selected]
+    ability_to_select = 3 - len(abilities_selected)
+
+    ability_table = EvTable(
+        border="cells",
+        valign="t",
+        width=80,
+    )
+    ability_table.add_column("Ability", "|cStrength|n", "|cCunning|n", "|cWill|n", width=12)
+    ability_table.add_column(
+        "Explanation",
+        "Determines how much damage you do with physical weapons, helps you earn more |cHP|n and"
+            " |cStamina|n when gaining a level and affects carrying capacity.",
+        "Affects your accuracy rating with physical attacks, evasion from physical attacks and can"
+            " help at picking locks or sneaking around undetected.",
+        "Affects your accuracy rating and damage with tech attacks, your resistance to tech attacks"
+            " and helps you earn more |cMax System Load|n when gaining a level.",
+    )
+    ability_table.add_column(
+        "Class w/ Primary",
+        "Antifa Rioter\nGym Bro",
+        "Gooner\nMin-Maxer\nShitposter",
+        "Conspiracy Nut\nHacker\nPusher",
+        width=18
+    )
+    ability_table.add_column(
+        "Class w/ Secondary",
+        "Conspiracy Nut\nGooner\nPusher",
+        "Antifa Rioter\nHacker",
+        "Gym Bro\nMin-Maxer\nShitposter",
+        width=18
+    )
+
+    text = f"""Your character so far:
+{tmp_character.show_sheet()}
+
+Assign your |cAbility Scores|n. There are 3 ability scores in Deep Web Dungeons, strength (STR), cunning (CUN), and will (WIL), described below. You must assign one score with a +3 bonus, one with a +2 bonus, and one with a +1 bonus. When you select a race in the next section, you will be given bonuses and penalties depending on your race choice. These abilities will also rise with your level, at rates determined by your chosen character class' primary and secondary stats.
+
+{ability_table}
+
+Select the |cAbility Score|n by number to receive a +{ability_to_select} bonus below or Go Back.
+"""
+
+    options = []
+    for ability in abilities_remaining:
+        new_abilities_selected = abilities_selected + [ability]
+        options.append(
+            {
+                "desc": f"|c{ability.capitalize()}|n",
+                "goto": (
+                    "node_apply_ability",
+                    {"abilities_selected": new_abilities_selected, **kwargs}
+                )
+            }
+        )
+
+    options += [
         {
-            "desc": f"|c{cclass.name}|n",
-            "goto": ("node_select_class", {"cclass": cclass, **kwargs}),
-        }
-        for cclass in _SORTED_CLASSES
-    ]
-
-    return (text, "Type in the number next to the class to have more info."), options
-
-
-def node_select_class(caller, raw_string, **kwargs):
-    """Class detail and selection menu node."""
-    try:
-        choice = int(raw_string.strip())
-        cclass = _SORTED_CLASSES[choice - 1]
-    except (ValueError, KeyError, IndexError):
-        caller.msg("|rInvalid choice. Try again.")
-        return None
-
-    text = cclass.desc + "\nWould you like to become this class?"
-    help_text = "Examine the properties of this class and decide whether\n"
-    help_text += "to use its starting attributes for your character."
-    options = (
-        {
-            "key": ("Yes", "ye", "y"),
-            "desc": f"Become {cclass.name}",
-            "goto": ("node_apply_class", {"cclass": cclass, **kwargs}),
+            "desc": "Go Back",
+            "goto": ("node_show_genders", {"go_back": True, **kwargs})
         },
         {
-            "key": ("No", "n", "_default"),
-            "desc": "Return to Class selection",
-            "goto": "node_show_classes"
-        }
-    )
-    return (text, help_text), options
+            "desc": "Cancel and Return to Main Menu",
+            "goto": ("node_end_chargen", {})
+        },
+    ]
 
+    return (text, ""), options
 
-def node_apply_class(caller, raw_string, **kwargs):
-    """ Apply the selected class. """
-    cclass = kwargs.get('cclass')
+def node_apply_ability(caller, raw_string, **kwargs):
+    """ Apply the ability selected by the user. """
+
+    abilities_selected = kwargs["abilities_selected"]
     tmp_character = kwargs["tmp_character"]
-    tmp_character.cclass = cclass
 
-    return node_chargen(caller, '', tmp_character=tmp_character)
+    if len(abilities_selected) == 1:
+        setattr(tmp_character, abilities_selected[0], 3)
 
+        return node_show_abilities(
+            caller,
+            "",
+            tmp_character=tmp_character,
+            abilities_selected=abilities_selected,
+        )
+
+    for ability in abilities_selected:
+        if getattr(tmp_character, ability) == 0:
+            setattr(tmp_character, ability, 2)
+
+    ability_remaining = [ability for ability in _ABILITIES if ability not in abilities_selected][0]
+    setattr(tmp_character, ability_remaining, 1)
+
+    return node_show_races(caller, "", tmp_character=tmp_character)
 
 def node_show_races(caller, raw_string, **kwargs):
-    """Starting page and Class listing."""
-    text = """\
-        Select a |cRace|n.
+    """ Let user select a race. """
 
-        Select one by number below to view its details, or |whelp|n
-        at any time for more info.
-    """
+    tmp_character = kwargs["tmp_character"]
+
+    if kwargs.get("go_back"):
+        tmp_character.apply_race(None)
+
+    race_table = EvTable(
+        border="cells",
+        valign="t",
+        width=80
+    )
+
+    races = list(RACES.values())
+    race_data = each_slice(races, 2)
+
+    for race_pair in race_data:
+        race1 = race2 = Race(key="dummy", name="", desc="")
+
+        if len(race_pair) == 2:
+            race1, race2 = race_pair
+        else:
+            race1 = race_pair[0]
+
+        race_table.add_row(f"|c{race1.name}|n", f"|c{race2.name}|n")
+        race_table.add_row(race1.desc, race2.desc)
+
+    text = f"""Your character so far:
+{tmp_character.show_sheet()}
+
+Select a |cRace|n. Your race is immutable and affects your starting ability scores.
+
+{race_table}
+
+Select one by number below or Go Back.
+"""
 
     options = [
         {
             "desc": f"|c{race.name}|n",
-            "goto": ("node_select_race", {"race": race, **kwargs}),
+            "goto": ("node_apply_race", {"race": race, **kwargs}),
         }
-        for race in _SORTED_RACES
-    ]
-
-    return (text, "Select a race to show its details"), options
-
-
-def node_select_race(caller, raw_string, **kwargs):
-    """Race detail and selection menu node."""
-    try:
-        choice = int(raw_string.strip())
-        race = _SORTED_RACES[choice - 1]
-    except (ValueError, KeyError, IndexError):
-        caller.msg("|rInvalid choice. Try again.")
-        return None
-
-    text = race.desc + "\nWould you like to become this race?"
-    help_text = "Examine the properties of this race and decide whether\n"
-    help_text += "to use its starting attributes for your character."
-    options = (
+        for race in RACES.values()
+    ] + [
         {
-            "key": ("Yes", "ye", "y"),
-            "desc": f"Become {race.name}",
-            "goto": ("node_apply_race", {'race': race, **kwargs}),
+            "desc": "Random",
+            "goto": ("node_apply_race", {"race": tmp_character.random_race(), **kwargs})
         },
         {
-            "key": ("No", "n", "_default"),
-            "desc": "Return to Class selection",
-            "goto": "node_show_races"
-        }
-    )
+            "desc": "Go Back",
+            "goto": ("node_show_abilities", {"go_back": True, **kwargs})
+        },
+        {
+            "desc": "Cancel and Return to Main Menu",
+            "goto": ("node_end_chargen", {})
+        },
+    ]
 
-    return (text, help_text), options
-
+    return (text, ""), options
 
 def node_apply_race(caller, raw_string, **kwargs):
     """ Apply the selected race. """
+
     race = kwargs.get('race')
     tmp_character = kwargs["tmp_character"]
-    tmp_character.swap_race(race)
-    caller.msg('Swapped race!')
+    tmp_character.apply_race(race)
 
-    return node_chargen(caller, '', tmp_character=tmp_character)
+    if race.key == "human":
+        return node_show_human_abilities(caller, "", tmp_character=tmp_character)
+
+    return node_show_cclasses(caller, "", tmp_character=tmp_character)
+
+def node_show_human_abilities(caller, raw_string, **kwargs):
+    """
+    If user chose Human race, they need to decide which abilities to apply race modifiers to.
+    """
+
+    tmp_character = kwargs["tmp_character"]
+    bonus = kwargs.get("bonus", None)
+    abilities_remaining = [ability for ability in _ABILITIES if ability != bonus]
+    bonus_or_penalty = "+2 bonus"
+
+    if bonus:
+        bonus_or_penalty = "-2 penalty"
+
+    text = f"""Your character so far:
+{tmp_character.show_sheet()}
+
+Since you are a |cHuman|n, you may choose which abilities to modify.
+Chose which ability gets a {bonus_or_penalty}.
+
+Select one by number below or Go Back.
+"""
+
+    options = [
+        {
+            "desc": f"|c{ability.capitalize()}|n",
+            "goto": (
+                "node_apply_human_abilities",
+                {"bonus" if not bonus else "penalty": ability, **kwargs}
+            ),
+        }
+        for ability in abilities_remaining
+    ] + [
+        {
+            "desc": "Go Back",
+            "goto": ("node_show_races", {"go_back": True, **kwargs})
+        },
+        {
+            "desc": "Cancel and Return to Main Menu",
+            "goto": ("node_end_chargen", {})
+        },
+    ]
+
+    return (text, ""), options
+
+def node_apply_human_abilities(caller, raw_string, **kwargs):
+    """ Apply the chosen Human race modifiers to the character. """
+
+    tmp_character = kwargs["tmp_character"]
+    bonus = kwargs.get("bonus", None)
+    penalty = kwargs.get("penalty", None)
+
+    if penalty:
+        # apply the the penalty and move to node_show_cclasses
+        tmp_character.apply_ability_bonus(penalty, -2)
+        return node_show_cclasses(caller, "", tmp_character=tmp_character)
+
+
+    # apply the bonus and ask the user for the penalty
+    tmp_character.apply_ability_bonus(bonus, 2)
+    return node_show_human_abilities(caller, "", tmp_character=tmp_character, bonus=bonus)
+
+def node_show_cclasses(caller, raw_string, **kwargs):
+    """ Let user select a character class. """
+
+    tmp_character = kwargs["tmp_character"]
+
+    if kwargs.get("go_back"):
+        tmp_character.apply_cclass(None)
+
+    cclass_table = EvTable(
+        border="cells",
+        valign="t",
+        width=80,
+    )
+
+    for cclass in list(CHARACTER_CLASSES.values()):
+        cclass_table.add_row(f"|c{cclass.name}|n")
+        cclass_table.add_row(cclass.desc)
+
+    text = f"""Your character so far:
+{tmp_character.show_sheet()}
+
+Select a |cClass|n. Your class will define how you play the game - how your abilities will progress as you level, what gear you can use, and what skills you can learn.
+
+{cclass_table}
+
+Select one by number below or Go Back.
+"""
+
+    options = [
+        {
+            "desc": f"|c{cclass.name}|n",
+            "goto": ("node_apply_cclass", {"cclass": cclass, **kwargs}),
+        }
+        for cclass in CHARACTER_CLASSES.values()
+    ] + [
+        {
+            "desc": "Random",
+            "goto": ("node_apply_cclass", {"cclass": tmp_character.random_cclass(), **kwargs})
+        },
+        {
+            "desc": "Go Back",
+            "goto": ("node_show_races", {"go_back": True, **kwargs})
+        },
+        {
+            "desc": "Cancel and Return to Main Menu",
+            "goto": ("node_end_chargen", {})
+        },
+    ]
+
+    return (text, ""), options
+
+def node_apply_cclass(caller, raw_string, **kwargs):
+    """ Apply the selected character class. """
+
+    cclass = kwargs.get('cclass')
+    tmp_character = kwargs["tmp_character"]
+    tmp_character.apply_cclass(cclass)
+
+    return node_show_appearance(caller, "", tmp_character=tmp_character)
+
+def node_show_appearance(caller, raw_string, **kwargs):
+    """ Show appearance options for the character. """
+
+    tmp_character = kwargs["tmp_character"]
+
+    appearance_table = EvTable(
+        border="cells",
+        valign="t",
+        width=80,
+    )
+    appearance_data = each_slice(_APPEARANCE_OPTIONS, 2)
+    appearance1 = appearance2 = ""
+
+    for appearance_pair in appearance_data:
+        if len(appearance_pair) == 2:
+            appearance1, appearance2 = appearance_pair
+        else:
+            appearance1 = appearance_pair[0]
+
+        appearance_table.add_row(
+            f"|c{appearance1.capitalize()}|n",
+            f"|c{appearance2.capitalize()}|n"
+        )
+        appearance_table.add_row(
+            f"{getattr(tmp_character, appearance1)}",
+            f"{getattr(tmp_character, appearance2)}"
+        )
+
+    text = f"""Your character so far:
+{tmp_character.show_sheet()}
+
+Finally, decide on your appearance. This, along with your equipment, is what others will see when they `look` at you in game.
+
+{appearance_table}
+
+Select one by number below or Go Back.
+"""
+
+    options = [
+        {
+            "desc": f"|c{appearance_option.capitalize()}|n",
+            "goto": (
+                "node_show_appearance_option",
+                {"appearance_option": appearance_option, **kwargs}
+            ),
+        }
+        for appearance_option in _APPEARANCE_OPTIONS
+    ] + [
+        {
+            "desc": "Go Back",
+            "goto": ("node_show_cclasses", {"go_back": True, **kwargs})
+        },
+        {
+            "desc": "Cancel and Return to Main Menu",
+            "goto": ("node_end_chargen", {})
+        },
+        {
+            "desc": "Accept and play the game!",
+            "goto": ("node_apply_appearance", kwargs)
+        },
+    ]
+
+    return (text, ""), options
+
+def node_show_appearance_option(caller, raw_string, **kwargs):
+    """ Show the options for a given appearance attribute. """
+
+    tmp_character = kwargs["tmp_character"]
+    appearance_option = kwargs["appearance_option"]
+
+    text = f"""Your character so far:
+{tmp_character.show_sheet()}
+
+Choose an option for how your |c{appearance_option.capitalize()}|n will appear to other players.
+
+Select one by number below or Go Back.
+"""
+    options = [
+        {
+            "desc": f"|c{appearance_value}|n",
+            "goto": (
+                "node_apply_appearance_option",
+                {
+                    "appearance_option": appearance_option,
+                    "appearance_value": appearance_value,
+                    **kwargs
+                }
+            ),
+        }
+        for appearance_value in chargen_tables.get(appearance_option)
+    ] + [
+        {
+            "desc": "Random",
+            "goto": (
+                "node_apply_appearance_option",
+                {"appearance_option": appearance_option, "appearance_value": "RANDOM", **kwargs}
+            ),
+        },
+    ]
+
+    return (text, ""), options
+
+def node_apply_appearance_option(caller, raw_string, **kwargs):
+    """ Apply a chosen value to an appearance option. """
+
+    tmp_character = kwargs["tmp_character"]
+    appearance_option = kwargs["appearance_option"]
+    appearance_value = kwargs["appearance_value"]
+    tmp_character.apply_appearance_attribute(appearance_option, appearance_value)
+
+    return node_show_appearance(caller, "", tmp_character=tmp_character)
+
+def node_apply_appearance(caller, raw_string, **kwargs):
+    """ Apply the appearance to the character. """
+
+    tmp_character = kwargs["tmp_character"]
+    tmp_character.apply_appearance()
+
+    return node_apply_character(caller, "", tmp_character=tmp_character)

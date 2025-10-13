@@ -4,13 +4,13 @@ Tests of the utils module.
 """
 
 from evennia.utils import create
-from evennia.utils.test_resources import BaseEvenniaTest
+from evennia.utils.test_resources import EvenniaTest
 
 from world import utils
 from typeclasses.objects import Object
 
 
-class TestUtils(BaseEvenniaTest):
+class TestUtils(EvenniaTest):
     """ test utils """
     def test_get_obj_stats(self):
         """ test get_obj_stats """
@@ -23,14 +23,12 @@ class TestUtils(BaseEvenniaTest):
         self.assertEqual(
             result,
             """
-|ctestobj|n
-Value: ~|y0|n coins
+testobj
 
 A test object
 
 Slots: |w1|n, Used from: |wbackpack|n
 Quality: |wN/A|n, Uses: |wN/A|n
 Attacks using |wNo attack|n against |wNo defense|n
-Damage roll: |wNone|n
-""".strip(),
+""",
         )

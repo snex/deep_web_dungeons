@@ -5,12 +5,12 @@ Test characters.
 
 from unittest.mock import patch
 
-from evennia.utils.test_resources import EvenniaTest
 from world.characters.classes import CHARACTER_CLASSES
 from world.characters.races import RACES
 
+from .mixins import AinneveTestMixin
 
-class TestCharacters(EvenniaTest):
+class TestCharacters(AinneveTestMixin):
     """ Test Character methods. """
 
     def test_abilities(self):
@@ -20,17 +20,17 @@ class TestCharacters(EvenniaTest):
 
     def test_cclass(self):
         """ Test character classes work. """
-        self.char1.db.cclass_key = "paladin"
-        self.assertEqual(self.char1.cclass, CHARACTER_CLASSES["paladin"])
-        self.char1.ndb.cclass = CHARACTER_CLASSES["warrior"]
-        self.assertEqual(self.char1.cclass, CHARACTER_CLASSES["warrior"])
+        self.char1.db.cclass_key = "antifa_rioter"
+        self.assertEqual(self.char1.cclass, CHARACTER_CLASSES["antifa_rioter"])
+        self.char1.ndb.cclass = CHARACTER_CLASSES["hacker"]
+        self.assertEqual(self.char1.cclass, CHARACTER_CLASSES["hacker"])
 
     def test_race(self):
         """ Test races work. """
-        self.char1.db.race_key = "dwarf"
-        self.assertEqual(self.char1.race, RACES["dwarf"])
-        self.char1.ndb.race = RACES["human"]
+        self.char1.db.race_key = "human"
         self.assertEqual(self.char1.race, RACES["human"])
+        self.char1.ndb.race = RACES["furry"]
+        self.assertEqual(self.char1.race, RACES["furry"])
 
     def test_hurt_level(self):
         """ Test hurt_level text. """
@@ -58,21 +58,21 @@ class TestCharacters(EvenniaTest):
         self.char1.mana = self.char1.mana_max = 100
         self.assertEqual(self.char1.mana_level, "|gPerfect|n")
         self.char1.mana = 90
-        self.assertEqual(self.char1.mana_level, "|gWell Studied|n")
+        self.assertEqual(self.char1.mana_level, "|gFrizzled|n")
         self.char1.mana = 75
-        self.assertEqual(self.char1.mana_level, "|GStudied|n")
+        self.assertEqual(self.char1.mana_level, "|GWarm|n")
         self.char1.mana = 50
-        self.assertEqual(self.char1.mana_level, "|yLosing Concentration|n")
+        self.assertEqual(self.char1.mana_level, "|yToasty|n")
         self.char1.mana = 40
-        self.assertEqual(self.char1.mana_level, "|ySlightly Drained|n")
+        self.assertEqual(self.char1.mana_level, "|yHot|n")
         self.char1.mana = 25
-        self.assertEqual(self.char1.mana_level, "|rDrained|n")
+        self.assertEqual(self.char1.mana_level, "|rFried|n")
         self.char1.mana = 10
         self.assertEqual(self.char1.mana_level, "|rBarely Hanging On|n")
         self.char1.mana = 0
-        self.assertEqual(self.char1.mana_level, "|REmpty!|n")
+        self.assertEqual(self.char1.mana_level, "|ROverload!|n")
         self.char1.mana = -10
-        self.assertEqual(self.char1.mana_level, "|REmpty!|n")
+        self.assertEqual(self.char1.mana_level, "|ROverload!|n")
 
     def test_stamina_level(self):
         """ Test stamina_level text. """
@@ -155,3 +155,22 @@ class TestCharacters(EvenniaTest):
             mock_msg.assert_called_once_with(
                 text=("room!", {"type": "look"})
             )
+
+    def test_return_appearance(self):
+        """ Test that the return_appearance method looks the way we want it. """
+        self.assertEqual(self.char1.return_appearance(None), "")
+        self.char1.equipment.move(self.weapon)
+        self.char1.equipment.move(self.armor)
+        self.char1.equipment.move(self.helmet)
+        self.char1.equipment.move(self.shield)
+        self.assertEqual(self.char1.return_appearance(self.char1), """
+|cChar|n
+
+One ugly motherfucker.
+This is a character.
+
+Right Hand: weapon
+Left Hand: shield
+Body: armor
+Head: helmet
+""")

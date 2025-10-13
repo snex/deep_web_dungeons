@@ -17,6 +17,8 @@ Forked from [Ainneve](https://github.com/evennia/ainneve)
 
 * Antifa Rioter - Melee tank (Pri: STR, Sec: CUN)
     * Need ideas for skills
+* Min-Maxer - Melee tank (Pri: CUN, Sec: WIL)
+    * Need ideas for skills
 * Hacker - Ranged DPS (Pri: WIL, Sec: CUN)
     * Deploy Script
     * PQ-Encryption
@@ -27,11 +29,13 @@ Forked from [Ainneve](https://github.com/evennia/ainneve)
 * Shitposter - Buff / Debuff (Pri: CUN, Sec: WIL)
     * Epic Troll
     * Dank Meme
-* Conspiracy Theorist - Buff / Debuff (Pri: WIL, Sec: CUN)
+* Conspiracy Nut - Buff / Debuff (Pri: WIL, Sec: STR)
     * Jet Fuel Can't Melt Steel Beams
     * Fake Moon Landing
 * Pusher - Healer (Pri: WIL, Sec: STR)
     * Need ideas for skills (drug related) - maybe similar to an alchemist who mixes ingredients to discover effects?
+* Gym Bro - Healer (Pri: STR, Sec: CUN)
+    * Need ideas for skills
 
 ## Currency
 

@@ -8,7 +8,7 @@ Note that the default Character, Room and Exit do not inherit from Object.
 
 from evennia import AttributeProperty
 from evennia.objects.objects import DefaultObject
-from evennia.utils.utils import make_iter
+from evennia.utils.utils import compress_whitespace, make_iter
 
 from world.enums import Ability, CombatRange, ObjType, WieldLocation, AttackType, DefenseType
 from world.utils import get_obj_stats
@@ -19,11 +19,22 @@ class Object(DefaultObject):
 
     """
 
+    TIER_DISPLAY_COLORS = [
+        "|n", # Tier 0 items are not equippable and display in normal text
+        "|x", # Tier 1 items have no affixes
+        "|C", # Tier 2 items have 1 or 2 affixes
+        "|Y", # Tier 3 items have 3 or 4 affixes
+        "|g", # Tier 4 items have 5 or 6 affixes
+    ]
+
     # inventory management
     inventory_use_slot = AttributeProperty(WieldLocation.BACKPACK)
     # how many inventory slots it uses (can be a fraction)
     size = AttributeProperty(1)
     value = AttributeProperty(0)
+    material = AttributeProperty(default="")
+    tier = AttributeProperty(default=0)
+    display_name = AttributeProperty(default=None)
 
     # can also be an iterable, for adding multiple obj-type tags
     obj_type = ObjType.GEAR
@@ -31,11 +42,22 @@ class Object(DefaultObject):
     def at_object_creation(self):
         for obj_type in make_iter(self.obj_type):
             self.tags.add(obj_type.value, category="obj_type")
+        self.locks.add("view: not_in_foreign_backpack()")
 
-    def get_display_header(self, looker, **kwargs):
-        return ""  # this is handled by get_obj_stats
+    def get_display_name(self, looker=None, **kwargs):
+        material = getattr(getattr(self, "material", ""), "value", None)
+        tier = getattr(self, "tier", 0)
+        color = self.TIER_DISPLAY_COLORS[tier]
+        display_name = self.display_name or self.name
 
-    def get_display_desc(self, looker, **kwargs):
+        if not material:
+            return display_name
+
+        # handle affixes here
+
+        return compress_whitespace(f"{color}{material} {display_name}|n")
+
+    def return_appearance(self, looker, **kwargs):
         return get_obj_stats(self, owner=looker)
 
     def has_obj_type(self, objtype):
@@ -185,32 +207,6 @@ class WeaponBareHands(WeaponObject):
 
     def can_parry(self):
         return False
-
-class Runestone(WeaponObject, ConsumableObject):
-    """
-    Base class for magic runestones. In _Knave_, every spell is represented by a rune stone
-    that takes up an inventory slot. It is wielded as a weapon in order to create the specific
-    magical effect provided by the stone. Normally each stone can only be used once per day but
-    they are quite powerful (and scales with caster level).
-
-    """
-
-    obj_type = (ObjType.WEAPON, ObjType.MAGIC)
-    inventory_use_slot = WieldLocation.TWO_HANDS
-    quality = AttributeProperty(3)
-
-    attack_type = AttributeProperty(Ability.WIL)
-    defense_type = AttributeProperty(Ability.CUN)
-    damage_roll = AttributeProperty("1d8")
-
-    def at_post_use(self, user, *args, **kwargs):
-        """ Called after the spell was cast. """
-        self.uses -= 1
-
-    def refresh(self):
-        """ Reset the runestone after it was used. """
-        self.uses = 1
-
 
 class ArmorObject(Object):
     """
