@@ -45,6 +45,7 @@ class BaseCharacter(
     gender = AttributeProperty(default="male")
     coins = AttributeProperty(default=0)  # copper coins
     aggro = AttributeProperty(default="n")  # Defensive, Normal, or Aggressive (d/n/a)
+    physical_appearance = AttributeProperty(default="One ugly motherfucker.")
 
     def at_defeat(self):
         """
@@ -119,25 +120,34 @@ class Character(BaseCharacter):
     stamina_max = AttributeProperty(default=4)
 
     # Combat State Tracking
-
-
     adelay = NAttributeProperty( default=0.0 ) # delay attacks until float time
     mdelay = NAttributeProperty( default=0.0 ) # delay movement until float time
+
+    appearance_template = """
+|c{name}{extra_name_info}|n
+
+{physical_appearance}
+{desc}
+
+{things}
+"""
 
     @property
     def mana_level(self):
         """
         String describing how much mana the character has
+        In-game, we call it "System Load" and it is inverted,
+        so the language here is likewise inverted.
         """
 
         mana_levels = [
-            (1, "|REmpty!|n"),
+            (1, "|ROverload!|n"),
             (15, "|rBarely Hanging On|n"),
-            (30, "|rDrained|n"),
-            (45, "|ySlightly Drained|n"),
-            (60, "|yLosing Concentration|n"),
-            (80, "|GStudied|n"),
-            (95, "|gWell Studied|n"),
+            (30, "|rFried|n"),
+            (45, "|yHot|n"),
+            (60, "|yToasty|n"),
+            (80, "|GWarm|n"),
+            (95, "|gFrizzled|n"),
             (100, "|gPerfect|n"),
         ]
         percent = max(0, min(100, 100 * (self.mana / self.mana_max)))
@@ -300,3 +310,23 @@ class Character(BaseCharacter):
         if map_getter := getattr(self.location, 'get_map_display', None):
             # Send the map to the WebClient
             self.msg(map=map_getter(looker=self))
+
+    def _display_loadout(self):
+        return f"""
+Right Hand: {self.equipment.weapon}
+Left Hand: {self.equipment.shield}
+Body: {self.equipment.armor_item}
+Head: {self.equipment.helmet}
+""".strip()
+
+    def return_appearance(self, looker, **kwargs):
+        if not looker:
+            return ""
+
+        return self.appearance_template.format(
+            name=self.get_display_name(looker, **kwargs),
+            extra_name_info=self.get_extra_display_name_info(looker, **kwargs),
+            physical_appearance=self.physical_appearance,
+            desc=self.get_display_desc(looker, **kwargs),
+            things=self._display_loadout(),
+        )

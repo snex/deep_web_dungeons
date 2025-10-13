@@ -50,8 +50,8 @@ EXTRA_LAUNCHER_COMMANDS['xyzgrid'] = 'evennia.contrib.grid.xyzgrid.launchcmd.xyz
 
 # add game-specific maps
 XYZGRID_MAP_LIST = [
-    'world.maps.riverport',
-    ]
+    'world.maps.control_station_7'
+]
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.

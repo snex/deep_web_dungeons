@@ -112,7 +112,7 @@ class CombatRules:
         #          during the fight.
 
         # Temporary code until we can implement the above
-        if fighter.is_pc:
+        if getattr(fighter, "is_pc", False):
             return CombatRange.MELEE
 
         return CombatRange.MELEE
@@ -251,7 +251,7 @@ class CombatHandler:
             if range_enum.value >= distance:
                 return range_enum
 
-        return CombatRange.RANGED
+        return CombatRange.LONG_RANGE
 
     def in_range(self, attacker, target, combat_range):
         """Check if target is within the specified range of attacker."""
@@ -443,7 +443,7 @@ class CombatHandler:
 
         attack_roll = rules.dice.roll("1d20") + attacker.get_ability(weapon.attack_type)
         target_size_penalty = 0
-        if self.in_range(attacker, target, CombatRange.SHORT):
+        if self.in_range(attacker, target, CombatRange.SHORT_RANGE):
             range_penalty = 0
         else:
             # TODO Determine penalty
@@ -518,7 +518,7 @@ class CombatHandler:
 
         attack_roll = rules.dice.roll("1d20") + attacker.get_ability(weapon.attack_type)
         target_size_penalty = 0
-        if self.in_range(attacker, target, CombatRange.SHORT):
+        if self.in_range(attacker, target, CombatRange.SHORT_RANGE):
             range_penalty = 0
         else:
             # TODO Determine penalty

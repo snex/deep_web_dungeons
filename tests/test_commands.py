@@ -73,7 +73,7 @@ ______________________________________________________________________________
     def test_charsheet(self):
         """ Test that the charsheet command shows your character sheet. """
         expected_output = strip_ansi("""
-|wChar the female Human Warrior|n
+|wChar the female Human Antifa Rioter|n
 
 STR +1
 CUN -1
@@ -88,7 +88,7 @@ Current stats:
 """)
         self.char1.gender = "female"
         self.char1.race_key = "human"
-        self.char1.cclass_key = "warrior"
+        self.char1.cclass_key = "antifa_rioter"
         self.char1.cunning = -1
         self.char1.db.desc = "This is Char."
         self.call(

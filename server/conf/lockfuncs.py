@@ -20,6 +20,12 @@ lock functions from evennia.locks.lockfuncs.
 
 """
 
+from evennia.utils.utils import inherits_from
+
+from typeclasses.characters import Character
+
+from world.enums import WieldLocation
+
 def in_combat(accessing_obj, _accessed_obj, *args, **kwargs):
     """returns true if an active combat handler is present"""
     if hasattr(accessing_obj, 'nattributes'):
@@ -52,8 +58,19 @@ def ranged_equipped(accessing_obj, _accessed_obj, *args, **kwargs):
     """returns true if accessing_obj has a ranged weapon equipped"""
     if hasattr(accessing_obj, 'weapon'):
         if hasattr(accessing_obj.weapon, 'attack_range'):
-            return accessing_obj.weapon.attack_range.name == "RANGED"
+            return accessing_obj.weapon.attack_range.name == "LONG_RANGE"
 
         return False
 
     return False
+
+def not_in_foreign_backpack(accessing_obj, accessed_obj, *args, **kwargs):
+    """ returns false if another character has the accessed_obj in their backpack """
+
+    if accessed_obj.location == accessing_obj:
+        return True
+
+    if not inherits_from(accessed_obj.location, Character):
+        return True
+
+    return accessed_obj.location.equipment.get_current_slot(accessed_obj) != WieldLocation.BACKPACK

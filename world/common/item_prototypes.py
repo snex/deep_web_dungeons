@@ -1,12 +1,42 @@
 """ Item prototypes """
 
-from world.enums import WieldLocation, CombatRange, Ability, DefenseType
+from world.enums import(
+    Ability,
+    CombatRange,
+    DefenseType,
+    PhysicalObjectMaterial,
+    TechArmorMaterial,
+    TechHelmetMaterial,
+    TechWeaponMaterial,
+    WieldLocation
+)
 
 BASE_WEAPON = {
     "prototype_key": "base_weapon",
     "typeclass": "typeclasses.objects.WeaponObject",
     "inventory_use_slot": WieldLocation.WEAPON_HAND,
     "quality": 3,
+    "tier": 1,
+}
+
+BASE_WEAPON_NON_LETHAL = {
+    "prototype_key": "base_weapon_non_lethal",
+    "prototype_parent": "base_weapon",
+    "inventory_use_slot": WieldLocation.WEAPON_HAND,
+    "quality": 3,
+}
+
+BASE_WEAPON_PHYSICAL = {
+    "prototype_key": "base_weapon_physical",
+    "prototype_parent": "base_weapon",
+    "material": PhysicalObjectMaterial.PLASTEEL
+}
+
+BASE_WEAPON_TECH = {
+    "prototype_key": "base_weapon_tech",
+    "prototype_parent": "base_weapon",
+    "inventory_use_slot": WieldLocation.TWO_HANDS,
+    "material": TechWeaponMaterial.QUARTZ_CORE
 }
 
 BASE_WEAPON_MELEE = {
@@ -16,68 +46,108 @@ BASE_WEAPON_MELEE = {
     "defense_type": DefenseType.ARMOR,
 }
 
-WEAPON_DAGGER_COMMON = {
-    "prototype_parent": "base_weapon_melee",
-    "prototype_key": "weapon_dagger_common",
-    "key": "dagger",
-    "attack_type": Ability.CUN,
+BASE_WEAPON_REACH = {
+    "prototype_parent": "base_weapon",
+    "prototype_key": "base_weapon_reach",
+    "attack_range": CombatRange.REACH,
+    "defense_type": DefenseType.ARMOR,
+}
+
+BASE_WEAPON_SHORT_RANGE = {
+    "prototype_parent": "base_weapon",
+    "prototype_key": "base_weapon_short_range",
+    "attack_range": CombatRange.SHORT_RANGE,
+    "defense_type": DefenseType.ARMOR,
+}
+
+BASE_WEAPON_MEDIUM_RANGE = {
+    "prototype_parent": "base_weapon",
+    "prototype_key": "base_weapon_medium_range",
+    "attack_range": CombatRange.MEDIUM_RANGE,
+    "defense_type": DefenseType.ARMOR,
+}
+
+BASE_WEAPON_LONG_RANGE = {
+    "prototype_parent": "base_weapon",
+    "prototype_key": "base_weapon_long_range",
+    "attack_range": CombatRange.LONG_RANGE,
+    "defense_type": DefenseType.ARMOR,
+}
+
+WEAPON_BIKE_LOCK = {
+    "prototype_parent": ("base_weapon_melee", "base_weapon_physical"),
+    "prototype_key": "weapon_bike_lock",
+    "key": "bike lock",
+    "attack_type": Ability.STR,
     "damage_roll": "1d6",
+    # use "permissions" here
+    # "allowed_classes": ["antifa_rioter"],
+    "desc": "A lock attached to a chain designed to keep a bicycle secure."
 }
 
-WEAPON_SWORD_COMMON = {
-    "prototype_parent": "base_weapon_melee",
-    "prototype_key": "weapon_sword_common",
-    "key": "sword",
-    "attack_type": Ability.STR,
-    "damage_roll": "1d6"
+WEAPON_BALISONG = {
+    "prototype_parent": ("base_weapon_melee", "base_weapon_physical"),
+    "prototype_key": "weapon_balisong",
+    "key": "balisong",
+    "attack_type": Ability.CUN,
+    "damage_roll": "1d4",
+    "desc": "A balisong, also known as a butterfly knife."
 }
 
-WEAPON_AXE_COMMON = {
-    "prototype_parent": "base_weapon_melee",
-    "prototype_key": "weapon_axe_common",
-    "key": "axe",
-    "attack_type": Ability.STR,
-    "damage_roll": "1d6"
-}
-
-WEAPON_TELEKINETIC_STONE_COMMON = {
-    "prototype_parent": "base_weapon_melee",
-    "prototype_key": "weapon_tk_stone_common",
-    "key": "telekinetic stone",
+WEAPON_LAPTOP = {
+    "prototype_parent": ("base_weapon_short_range", "base_weapon_tech"),
+    "prototype_key": "weapon_laptop",
+    "key": "laptop",
     "attack_type": Ability.WIL,
-    "damage_roll": "1d4"
+    "defense_type": Ability.WIL,
+    "damage_roll": "2d4",
+    "desc": "A cheap laptop."
 }
 
+WEAPON_DILDORANG = {
+    "prototype_parent": ("base_weapon_medium_range", "base_weapon_physical"),
+    "prototype_key": "weapon_dildorang",
+    "key": "dildorang",
+    "attack_type": Ability.CUN,
+    "defense_type": DefenseType.ARMOR,
+    "damage_roll": "2d4",
+    "desc": "A dildo perfectly curved so that it returns to the owner when thrown."
+}
 
 BASE_ARMOR = {
     "prototype_key": "base_armor",
     "typeclass": "typeclasses.objects.ArmorObject",
     "inventory_use_slot": WieldLocation.BODY,
     "quality": 3,
+    "tier": 1,
 }
 
-ARMOR_LEATHER_COMMON = {
+BASE_ARMOR_PHYSICAL = {
+    "prototype_key": "base_armor_physical",
     "prototype_parent": "base_armor",
-    "prototype_key": "armor_leather_common",
-    "key": "Leather Armor",
-    "inventory_use_slot": WieldLocation.BODY,
+    "material": PhysicalObjectMaterial.PLASTEEL
+}
+
+BASE_ARMOR_TECH = {
+    "prototype_key": "base_armor_tech",
+    "prototype_parent": "base_armor",
+    "material": TechArmorMaterial.DUST_WEAVE_CANVAS
+}
+
+ARMOR_CHEST_PLATE = {
+    "prototype_parent": "base_armor_physical",
+    "prototype_key": "armor_chest_plate",
+    "key": "chest plate",
     "armor": 1,
+    "desc": "Basic chest plate that gives a minimal amount of protection in combat.",
 }
 
-ARMOR_IRON_COMMON = {
-    "prototype_parent": "base_armor",
-    "prototype_key": "armor_iron_common",
-    "key": "Iron Armor",
-    "inventory_use_slot": WieldLocation.BODY,
-    "armor": 2,
-}
-
-ARMOR_ROBES_COMMON = {
-    "prototype_parent": "base_armor",
-    "prototype_key": "armor_robes_common",
-    "key": "Robes",
-    "inventory_use_slot": WieldLocation.BODY,
-    "armor": 0,
+ARMOR_TRENCH = {
+    "prototype_parent": "base_armor_tech",
+    "prototype_key": "armor_trench",
+    "key": "trench",
+    "max_system_load": 3,
+    "desc": "A basic full length trench coat."
 }
 
 BASE_SHIELD = {
@@ -85,18 +155,16 @@ BASE_SHIELD = {
     "typeclass": "typeclasses.objects.Shield",
     "inventory_use_slot": WieldLocation.SHIELD_HAND,
     "quality": 3,
+    "material": PhysicalObjectMaterial.PLASTEEL,
+    "tier": 1,
 }
 
-SHIELD_BUCKLER_COMMON = {
+SHIELD_GARBAGE_LID = {
     "prototype_parent": "base_shield",
-    "prototype_key": "shield_buckler_common",
-    "key": "buckler",
-}
-
-SHIELD_ROUND_COMMON = {
-    "prototype_parent": "base_shield",
-    "prototype_key": "shield_round_common",
-    "key": "round shield",
+    "prototype_key": "shield_garbage_lid",
+    "key": "garbage lid",
+    "block": 20.0,
+    "desc": "The lid from a garbage can."
 }
 
 BASE_HELMET = {
@@ -104,18 +172,41 @@ BASE_HELMET = {
     "typeclass": "typeclasses.objects.Helmet",
     "inventory_use_slot": WieldLocation.HEAD,
     "quality": 3,
+    "tier": 1,
 }
 
-HELMET_LEATHER_HOOD_COMMON = {
+BASE_HELMET_PHYSICAL = {
+    "prototype_key": "base_helmet_physical",
     "prototype_parent": "base_helmet",
-    "prototype_key": "helmet_leather_hood_common",
-    "key": "leather hood",
+    "material": PhysicalObjectMaterial.PLASTEEL
 }
 
-HELMET_IRON_HELM_COMMON = {
+BASE_HELMET_TECH = {
+    "prototype_key": "base_helmet_tech",
     "prototype_parent": "base_helmet",
-    "prototype_key": "helmet_iron_helm_common",
-    "key": "iron helm",
+    "material": TechHelmetMaterial.TINTED_POLYMER
+}
+
+HELMET_HOCKEY_MASK = {
+    "prototype_parent": "base_helmet_physical",
+    "prototype_key": "hockey_mask",
+    "key": "hockey mask",
+    "desc": "Hockey masks are good for a slight amount of defense and scaring kids at summer camp."
+}
+
+HELMET_SPECS = {
+    "prototype_parent": "base_helmet_tech",
+    "prototype_key": "specs",
+    "key": "specs",
+    "display_name": "pair of specs",
+    "desc": "A pair of specs worn over the eyes."
+}
+
+HELMET_GIMP_MASK = {
+    "prototype_parent": "base_helmet_physical",
+    "prototype_key": "gimp_mask",
+    "key": "gimp mask",
+    "desc": "A gimp mask is useless for defense but also not good for much else."
 }
 
 BASE_CONSUMABLE = {
@@ -134,16 +225,8 @@ RATION = {
     "prototype_parent": "base_healing_consumable",
     "prototype_key": "ration",
     "key": "ration",
+    "desc": "A grey protein block covered in pale-green nutrient paste.",
     "uses": 1,
     "heal_value": 3,
     "consume_method": "eat"
-}
-
-SMALL_HEALING_POTION = {
-    "prototype_parent": "base_healing_consumable",
-    "prototype_key": "small_healing_potion",
-    "key": "small healing potion",
-    "uses": 1,
-    "heal_value": 10,
-    "consume_method": "drink"
 }

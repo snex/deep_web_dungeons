@@ -53,20 +53,20 @@ class TestCombatHandler(AinneveTestMixin, EvenniaTest):
         self.assertTrue(self.combat.in_range(self.char1, self.char2, CombatRange.MELEE))
         self.combat.positions[self.char2] = 5
         self.assertFalse(self.combat.in_range(self.char1, self.char2, CombatRange.MELEE))
-        self.assertTrue(self.combat.in_range(self.char1, self.char2, CombatRange.RANGED))
+        self.assertTrue(self.combat.in_range(self.char1, self.char2, CombatRange.LONG_RANGE))
 
     def test_any_in_range(self):
         """ Test if any combatants are in range. """
         self.assertTrue(self.combat.any_in_range(self.char1, CombatRange.MELEE))
         self.combat.positions[self.char2] = 5
         self.assertFalse(self.combat.any_in_range(self.char1, CombatRange.MELEE))
-        self.assertTrue(self.combat.any_in_range(self.char1, CombatRange.RANGED))
+        self.assertTrue(self.combat.any_in_range(self.char1, CombatRange.LONG_RANGE))
 
     def test_get_range(self):
         """ Test get combat range. """
         self.assertEqual(self.combat.get_range(self.char1, self.char2), CombatRange.MELEE)
         self.combat.positions[self.char2] = 5
-        self.assertEqual(self.combat.get_range(self.char1, self.char2), CombatRange.MEDIUM)
+        self.assertEqual(self.combat.get_range(self.char1, self.char2), CombatRange.MEDIUM_RANGE)
 
 
 class TestCombatCommands(AinneveTestMixin, EvenniaCommandTest):
@@ -106,7 +106,7 @@ class TestCombatCommands(AinneveTestMixin, EvenniaCommandTest):
         """ Test combat hit command. """
         self.char1.strength = 100 # guarantee a hit
         combat_instance = CombatHandler(self.char1, self.target)
-        combat_instance.positions[self.target] = CombatRange.RANGED
+        combat_instance.positions[self.target] = CombatRange.LONG_RANGE
         self.call(
             combat.CmdHit(),
             "rat",
@@ -124,7 +124,7 @@ class TestCombatCommands(AinneveTestMixin, EvenniaCommandTest):
         """ Test combat shoot command. """
         self.char1.strength = 100 # guarantee a hit
         CombatHandler(self.char1, self.target)
-        self.weapon.attack_range = CombatRange.RANGED
+        self.weapon.attack_range = CombatRange.LONG_RANGE
         self.weapon.location = self.char1
         self.char1.equipment.move(self.weapon)
         self.call(
