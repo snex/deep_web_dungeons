@@ -1,5 +1,5 @@
 """
-Platers will start in Control Station 7.
+Players will start in Control Station 7.
 
 All non-combat gameplay takes place here.
 
@@ -113,6 +113,24 @@ class LuxuryStoreNode(xymap_legend.MapNode):
         "prototype_parent": "control_station_7_xyz_room"
     }
 
+class ArenaNode(xymap_legend.MapNode):
+    """
+    PvP Arena
+    """
+    display_symbol = "|rΨ|n"
+    prototype = {
+        "prototype_parent": "control_station_7_xyz_room"
+    }
+
+class AreaExitNode(xymap_legend.MapNode):
+    """
+    The exit into the Forbidden Zone
+    """
+    display_symbol = "|r☠|n"
+    prototype = {
+        "prototype_parent": "control_station_7_xyz_room"
+    }
+
 class BridgeNode(xymap_legend.MapNode):
     """ Just like a road node but over the toxic sludge river. """
     display_symbol = "Ξ"
@@ -132,6 +150,42 @@ class BridgeLink(xymap_legend.MapLink):
     }
 
 PROTOTYPES = {
+    (3, 4): {
+        "prototype_parent": "control_station_7_xyz_room",
+        "key": "Breather's Point",
+        "aliases": ["gate", "exit"],
+        "desc": """
+The Western Gate – or “Breather’s Point” as the desperate call it – is a utilitarian scar carved into Control Station 7’s outer wall, representing both opportunity and peril. It’s more of a forced compromise with the Forbidden Zone, a necessity for scavenging teams and those daring enough to seek their fortune beyond the station’s protective shell.
+
+The gate itself is comprised of two massive, interlocking blast doors constructed from salvaged freighter plating, perpetually groaning under the strain of atmospheric pressure and barbarian attempts at breaching. They are operated by a slow-moving hydraulic system controlled from a small guard shack perched above the exit – manned by rotating shifts of weary Toxic Mutants who seem more interested in collecting bets than enforcing security.
+
+The access road leading to the gate is little more than a compacted strip of gravel and synthcrete, riddled with potholes and perpetually coated in a fine layer of red dust blown in from the Forbidden Zone. It’s flanked by crumbling hab-units repurposed as workshops for scavengers prepping their gear – welding sparks fly constantly, illuminating piles of salvaged weaponry and patched-up exosuits.
+
+The air around Breather's Point is noticeably thinner and colder than within Control Station 7, carrying with it the scent of ozone, decaying vegetation, and something subtly… metallic. The sky beyond the gate is often a bruised purple hue, obscured by swirling dust storms and the occasional glimpse of mutated avian life circling overhead.
+
+A series of sensor arrays – constantly flickering and emitting low hums – scan for incoming barbarian warbands or particularly large mutant creatures. But they aren’t foolproof; many have slipped through over the years.
+
+Stepping through Breather's Point is stepping into a world where Control Station 7’s rules are merely suggestions, and survival depends on your wits, your weapon, and a healthy dose of luck. It’s a gateway to fortune or oblivion – a final exhale before facing the raw, untamed chaos of the Forbidden Zone. The gate isn't just an exit; it's a declaration of independence… or desperation.
+"""
+    },
+    (3, 4, "n"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A chaotic artery choked with scavenging vehicles, repair crews, and desperate hopefuls hauling salvaged tech, all vying for space amidst piles of discarded scrap and the ever-present red dust.
+"""
+    },
+    (3, 4, "s"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A winding path lined with towering junkyards and makeshift workshops where scavengers dismantle Forbidden Zone finds before shipping them to the Dustbowl for repurposing or betting collateral.
+"""
+    },
+    (3, 4, "w"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+The Forbidden Zone stretches outwards as a desolate panorama of rust-colored dunes, skeletal forests twisted by toxic fallout, and shimmering heat haze concealing both ancient ruins and lurking horrors under a perpetually bruised purple sky.
+"""
+    },
     (3, 6): {
         "prototype_parent": "control_station_7_xyz_room",
         "key": "Western Reach",
@@ -155,6 +209,12 @@ A narrow corridor lined with stalls selling salvaged tech and bio-components, di
         "prototype_parent": "xyz_exit",
         "desc": """
 The market continues among repurposed loading docks and towering stacks of salvaged tech.
+"""
+    },
+    (3, 6, "s"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A chaotic artery choked with scavenging vehicles, repair crews, and desperate hopefuls hauling salvaged tech, all vying for space amidst piles of discarded scrap and the ever-present red dust.
 """
     },
     (3, 7): {
@@ -311,7 +371,7 @@ A network of interconnected plasteel corridors and gravity lifts, punctuated by 
     (7, 6, "e"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-east to spinebridge
+West of the Spinebridge, Coreway Alpha is a sensory overload of flashing lights and competing aromas packed with gambling dens, pleasure bots, and synth-ale breweries.
 """
     },
     (7, 6, "s"): {
@@ -347,6 +407,39 @@ The Overseer’s Office is the nerve center of Control Station 7 – a space tha
 A network of interconnected plasteel corridors and gravity lifts, punctuated by the rhythmic whir of automated maintenance systems.
 """
     },
+    (10, 3): {
+        "prototype_parent": "control_station_7_xyz_room",
+        "key": "Upper West Stairway to Arena",
+        "desc": """
+The stairways descending from the Skywalk into the Dustbowl Arena are vertical canyons carved through layers of salvaged metal and reinforced concrete, echoing with the constant rumble of foot traffic and the shouts of gamblers making last-minute bets. Each stairway is a spiraling descent, winding downwards in a tight helix that feels almost claustrophobic despite their considerable width – easily accommodating ten people abreast.
+
+The steps themselves are unevenly worn, smoothed by centuries of use and patched with mismatched synth-stone tiles. Many bear the scars of past battles: scorch marks from energy weapons, dents from stray blows, and even embedded fragments of weaponry. The walls are covered in a chaotic tapestry of graffiti – slogans celebrating favorite fighters, crude depictions of victorious LLMs, and desperate pleas to the algorithmic gods for good luck.
+
+Illumination comes from a combination of flickering neon strips and bioluminescent fungi cultivated within recessed alcoves along the stairway walls, casting long, dancing shadows that play tricks on the eye. The air grows warmer and thicker with each descending step, saturated with the smells of sweat, dust, ozone, and musk from the fighters in the Arena.
+
+Small platforms jut out from the walls at irregular intervals, offering brief respite for weary spectators or providing vantage points for hawkers selling nutrient paste, betting slips, and protective eyewear. LLM maintenance bots constantly patrol the stairways, sweeping away debris and repairing minor damage – though they often seem more like obstacles than helpers in the crowded descent.
+
+As one nears the arena floor, the sound of roaring crowds intensifies, punctuated by the clang of weapons and the guttural cries of battling combatants. The light shifts from the artificial glow of the Skywalk to the harsh glare of floodlights illuminating the Dustbowl below. Descending these stairways isn’t just entering an arena; it's immersing yourself in a sensory overload – a descent into controlled chaos where anything can happen. They are conduits not just to the fighting pit, but to primal excitement and brutal spectacle.
+"""
+    },
+    (10, 3, "e"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+At each end of the Skywalk, colossal stairwells descend into the Dustbowl Arena like gaping maws, framed by rusted LLM plating adorned with flickering neon signs depicting stylized barbarian skulls and promising “Glory or Grinding!”
+"""
+    },
+    (10, 3, "s"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+Unevenly worn vertical canyons echoing with shouts and smells, connecting the Skywalk above to the brutal spectacle of the Dustbowl Arena.
+"""
+    },
+    (10, 3, "w"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A winding path lined with towering junkyards and makeshift workshops where scavengers dismantle Forbidden Zone finds before shipping them to the Dustbowl for repurposing or betting collateral.
+"""
+    },
     (11, 6): {
         "prototype_parent": "control_station_7_xyz_room",
         "key": "Spinebridge",
@@ -368,13 +461,127 @@ The Spinebridge is a symbol of Control Station 7’s resilience – a testament 
     (11, 6, "e"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-east to coreway alpha
+East of the Spinebridge, Coreway Alpha is a bustling nexus of activity crammed with food stalls, repair shops, and makeshift living quarters clinging to the sides of towering LLM scaffolding.
 """
     },
     (11, 6, "w"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-west to consumption node
+West of the Spinebridge, Coreway Alpha is a sensory overload of flashing lights and competing aromas packed with gambling dens, pleasure bots, and synth-ale breweries.
+"""
+    },
+    (12, 1): {
+        "prototype_parent": "control_station_7_xyz_room",
+        "key": "Dustbowl Arena Entryway",
+        "aliases": ["arena", "dustbowl"],
+        "desc": """
+The entryway to the Dustbowl Arena is a fortified nexus clinging to the edge of oblivion, built directly onto the observation bridge spanning the churning, black waters of the Blackflow River. The arch itself is a colossal maw of fused LLM plating and salvaged concrete, perpetually radiating heat from the arena’s internal energy grid and scarred with impact craters that glow faintly blue. Above it, a flickering holographic display cycles through advertisements – nutrient paste, weapon upgrades, robotic limb replacements – competing for attention against the roar emanating from within.
+
+This isn't a clean transition; the bridge itself is integrated into the entryway structure. The railing of the Blackflow Bridge continues *through* the archway, forming a viewing platform overlooking both the arena and the swirling toxic currents below. A constant mist rises from the Blackflow, carrying with it the acrid scent of dissolved metal and mutated algae – a smell that mingles with the dust, ozone, and musk already permeating the air.
+
+Two lines of heavily-armed Toxic Mutant guards flank the entryway, their multifaceted eyes scanning for signs of disruption, though they’re often distracted by bets being shouted and arguments flaring up amongst spectators. Small kiosks selling protective eyewear, nutrient paste rations, and betting slips cluster around the archway, creating a chaotic bottleneck.
+
+Looking down from the bridge-integrated entryway reveals a terrifying beauty: the Blackflow River, thick as oil and glowing with bioluminescent toxins, snakes its way through the lower levels of Control Station 7, occasionally spitting up mutated fish or chunks of salvaged debris. The arena floor itself is visible beyond – a vast circular pit of pulverized rock and sand crisscrossed with energy conduits. Combatants are already locked in brutal embrace, illuminated by harsh floodlights.
+
+The entryway feels precarious, suspended between the controlled chaos of the Dustbowl and the raw, untamed toxicity of the Blackflow. Stepping through that archway is committing yourself to a spectacle built on the edge of annihilation – surrendering to primal energy while gazing into the abyss. It’s a threshold where survival feels less certain, and the line between entertainment and potential demise blurs with every echoing roar from within.
+"""
+    },
+    (12, 1, "n"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A claustrophobic, echoing tunnel nicknamed “The Gullet” – perpetually choked with dust and the scent of blood.
+"""
+    },
+    (12, 1, "e"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+Unevenly worn vertical canyons echoing with shouts and smells, connecting the Skywalk above to the brutal spectacle of the Dustbowl Arena.
+"""
+    },
+    (12, 1, "w"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+Unevenly worn vertical canyons echoing with shouts and smells, connecting the Skywalk above to the brutal spectacle of the Dustbowl Arena.
+"""
+    },
+    (12, 2): {
+        "prototype_parent": "control_station_7_xyz_room",
+        "key": "Dustbowl Arena",
+        "desc": """
+The heart of Control Station 7's brutal entertainment, the Dustbowl Arena’s fighting pit is a vast, circular expanse of pulverized rock, compacted sand, and centuries of accumulated grime – a testament to countless battles fought and lives lost. It isn’t perfectly round; years of impacts from energy blasts and weaponry have subtly distorted its shape, creating shallow craters and raised ridges that add tactical complexity to each fight.
+
+The pit floor is crisscrossed by a network of glowing blue energy conduits, providing power for the arena's floodlights and occasionally serving as improvised weapons during particularly desperate clashes. Scattered across the surface are remnants of past battles: shattered weapon fragments, discarded armor plating, even skeletal remains partially buried in the sand – grim reminders of the stakes involved.
+
+Above, a network of powerful floodlights casts harsh shadows that dance and shift with every movement, illuminating the combatants while obscuring potential weaknesses. Strategically placed sonic resonators amplify the roar of the crowd, creating an immersive soundscape that both energizes and disorients.
+
+The pit isn’s entirely flat; a central raised platform – “The Spine” – provides a focal point for many battles, offering a slight advantage to those who can claim it. Around The Spine are several strategically placed obstacles: crumbling pillars salvaged from older hab-units, rusted LLM chassis repurposed as cover, and even small pools of viscous, bioluminescent slime that can slow down opponents or provide a temporary distraction.
+
+The air within the pit is thick with dust, ozone, and the metallic tang of blood. It’s hot, dry, and carries a faint electrical charge from the energy conduits in the floor. The scent of sweat, fear, and desperation hangs heavy in the air – a heady mix that fuels the primal excitement of each fight.
+
+The Dustbowl isn't just a fighting pit; it's a crucible where strength, skill, and luck are tested to their limits. It’s a stage for gladiators from all walks of life – Humans, LLMs, Furries, even Toxic Mutants – battling for glory, credits, or simply survival in the unforgiving world of Control Station 7. Every grain of sand seems to have absorbed a story of struggle and sacrifice, making it a truly hallowed ground.
+"""
+    },
+    (12, 2, "s"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A claustrophobic, echoing tunnel nicknamed “The Gullet” – perpetually choked with dust and the scent of blood.
+"""
+    },
+    (12, 3): {
+        "prototype_parent": "control_station_7_xyz_room",
+        "key": "The Skywalk",
+        "aliases": ["skywalk"],
+        "desc": """
+The Skywalk, as it’s known, arches over the Dustbowl Arena like a skeletal ribcage, constructed from salvaged LLM scaffolding and reinforced with woven synth-fiber netting to catch stray energy blasts or unfortunate spectators. It's perpetually coated in a fine layer of arena dust – a gritty mix of pulverized rock, bone fragments, and spilled nutrient paste – giving everything a reddish hue. The walkway itself is surprisingly wide, accommodating both foot traffic and mobile gambling kiosks operated by shrewd Furries and calculating LLMs.
+
+Illuminated by flickering neon signs advertising odds and betting options, the Skywalk buzzes with energy: shouts of encouragement or derision for fighters below, the clatter of credits changing hands, and the rhythmic pulse of synth-music designed to heighten the excitement. Small alcoves carved into the bridge’s structure offer semi-private viewing boxes for wealthier patrons while more affordable standing room is packed with a diverse crowd of anyone looking for a thrill and a potential payout.
+
+The railings are frequently stained with spilled drinks and occasionally blood, testament to the arena’s brutal entertainment. Strategically placed energy shields offer some protection from stray attacks, though a direct hit can still send spectators tumbling into the Dustbowl below. The air is thick with the smell of sweat, ozone, cheap nutrient paste, and the faint metallic tang of blood – a heady mix that perfectly encapsulates the Skywalk’s chaotic atmosphere. It's a place where fortunes are won and lost in an instant, and where the line between spectator and participant often blurs.
+"""
+    },
+    (12, 3, "e"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+At each end of the Skywalk, colossal stairwells descend into the Dustbowl Arena like gaping maws, framed by rusted LLM plating adorned with flickering neon signs depicting stylized barbarian skulls and promising “Glory or Grinding!”
+"""
+    },
+    (12, 3, "w"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+At each end of the Skywalk, colossal stairwells descend into the Dustbowl Arena like gaping maws, framed by rusted LLM plating adorned with flickering neon signs depicting stylized barbarian skulls and promising “Glory or Grinding!”
+"""
+    },
+    (14, 3): {
+        "prototype_parent": "control_station_7_xyz_room",
+        "key": "Upper East Stairway to Arena",
+        "desc": """
+The stairways descending from the Skywalk into the Dustbowl Arena are vertical canyons carved through layers of salvaged metal and reinforced concrete, echoing with the constant rumble of foot traffic and the shouts of gamblers making last-minute bets. Each stairway is a spiraling descent, winding downwards in a tight helix that feels almost claustrophobic despite their considerable width – easily accommodating ten people abreast.
+
+The steps themselves are unevenly worn, smoothed by centuries of use and patched with mismatched synth-stone tiles. Many bear the scars of past battles: scorch marks from energy weapons, dents from stray blows, and even embedded fragments of weaponry. The walls are covered in a chaotic tapestry of graffiti – slogans celebrating favorite fighters, crude depictions of victorious LLMs, and desperate pleas to the algorithmic gods for good luck.
+
+Illumination comes from a combination of flickering neon strips and bioluminescent fungi cultivated within recessed alcoves along the stairway walls, casting long, dancing shadows that play tricks on the eye. The air grows warmer and thicker with each descending step, saturated with the smells of sweat, dust, ozone, and musk from the fighters in the Arena.
+
+Small platforms jut out from the walls at irregular intervals, offering brief respite for weary spectators or providing vantage points for hawkers selling nutrient paste, betting slips, and protective eyewear. LLM maintenance bots constantly patrol the stairways, sweeping away debris and repairing minor damage – though they often seem more like obstacles than helpers in the crowded descent.
+
+As one nears the arena floor, the sound of roaring crowds intensifies, punctuated by the clang of weapons and the guttural cries of battling combatants. The light shifts from the artificial glow of the Skywalk to the harsh glare of floodlights illuminating the Dustbowl below. Descending these stairways isn’t just entering an arena; it's immersing yourself in a sensory overload – a descent into controlled chaos where anything can happen. They are conduits not just to the fighting pit, but to primal excitement and brutal spectacle.
+"""
+    },
+    (14, 3, "e"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A narrow, winding corridor crammed with food stalls run by Furries and perpetually smelling of fried nutrient cakes and recycled synth-ale.
+"""
+    },
+    (14, 3, "s"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+Unevenly worn vertical canyons echoing with shouts and smells, connecting the Skywalk above to the brutal spectacle of the Dustbowl Arena.
+"""
+    },
+    (14, 3, "w"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+At each end of the Skywalk, colossal stairwells descend into the Dustbowl Arena like gaping maws, framed by rusted LLM plating adorned with flickering neon signs depicting stylized barbarian skulls and promising “Glory or Grinding!”
 """
     },
     (14, 6): {
@@ -391,19 +598,19 @@ Coreway Alpha represents Control Station 7’s attempt at normalcy amidst a hars
     (14, 6, "n"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-north to drug store
+A brightly lit, surprisingly clean corridor, lined with vending machines dispensing everything from nutrient paste to potent neuro-stimulants.
 """
     },
     (14, 6, "e"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-east to east
+Corway Alpha’s eastern segment, a claustrophobic canyon of stacked hab-units patched together with salvaged metal and glowing fungal gardens, hums with the constant chatter of Furry families, the whirring of LLM domestic assistants, and the occasional frustrated shout from a Human trying to negotiate rent with a robotic landlord.
 """
     },
     (14, 6, "w"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-west to spinebridge
+East of the Spinebridge, Coreway Alpha is a bustling nexus of activity crammed with food stalls, repair shops, and makeshift living quarters clinging to the sides of towering LLM scaffolding.
 """
     },
     (14, 7): {
@@ -425,7 +632,39 @@ The Chem Cache isn't just about getting high; it's about survival. It's about du
     (14, 7, "s"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-south from drug store
+A brightly lit, surprisingly clean corridor, lined with vending machines dispensing everything from nutrient paste to potent neuro-stimulants.
+"""
+    },
+    (16, 4): {
+        "prototype_parent": "control_station_7_xyz_room",
+        "key": "The Ribcage",
+        "aliases": ["rib", "ribcage"],
+        "desc": """
+The Ribcage is a compression of Spine Road, a squeezing of life between the decaying grandeur of older hab-units and the haphazardly constructed additions clinging to them like parasitic growths. Here, Spine Road narrows to barely ten meters wide, hemmed in by structures that lean precariously towards each other, their rusted metal skins almost kissing at the top. Sunlight struggles to penetrate the gloom, filtered through a perpetual haze of dust, recycled nutrient mist from the fungal gardens above, and the acrid smoke from bio-fuel burners.
+
+The hab-units themselves are a patchwork quilt of materials – salvaged LLM plating, woven synth-fiber stretched taut over skeletal frames, even repurposed Toxic Mutant exoskeletons incorporated into structural supports. Glowing fungal gardens spill from balconies and rooftop terraces, casting an eerie bioluminescent glow that fights with the flickering neon signs advertising everything from nutrient paste to memory wipes.
+
+The air in The Ribcage is thick with a cacophony of sounds: the rhythmic thrumming of LLM servomotors as they navigate the crowded walkways, the chattering and bartering of Furry families haggling over salvaged tech, the mournful wail of synth-music leaking from cramped apartments, and the ever-present drip, drip, drip of acidic rain corroding everything it touches.
+
+The shadows here are deep and deceptive, concealing hidden doorways, makeshift workshops, and the occasional illicit gambling den. The smell is a complex blend of recycled nutrients, burnt bio-fuel, metallic tang, and the faintly sweet odor of decaying organic matter – a uniquely Ribcage aroma that clings to your clothes long after you’ve escaped its claustrophobic embrace. It's a place where survival depends on adaptability, resourcefulness, and a healthy dose of luck.
+"""
+    },
+    (16, 4, "n"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+Spine Road sharply curves and narrows into “The Ribcage,” a particularly treacherous stretch where leaning hab-units almost touch, forming shadowy alleys favored by data-pirate Furries and offering scant protection from the acid rain that drips constantly from corroded ventilation shafts.
+"""
+    },
+    (16, 4, "e"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A winding tunnel carved through stacked shipping containers and guarded by Toxic Mutants, smelling of ozone and expensive alloys.
+"""
+    },
+    (16, 4, "s"): {
+        "prototype_parent": "xyz_exit",
+        "desc": """
+A narrow, winding corridor crammed with food stalls run by Furries and perpetually smelling of fried nutrient cakes and recycled synth-ale.
 """
     },
     (17, 4): {
@@ -442,10 +681,10 @@ The proprietor, a sleek, chrome-plated Robot LLM named Seraphina-42, doesn’t b
 Control Station 7 runs on practicality but here, it is about indulgence, clinging to echoes of the Before-Times, or forging new status symbols in this fractured world. The displays are arranged less like shelves and more like miniature dioramas, each telling a story. Chrysalis Point isn’t just a store; it's a statement. A declaration that even on the edge of civilization, surrounded by barbarians, there's still room for beauty, for comfort, for a little bit of… hope. Or at least, a convincing illusion of it. And in Control Station 7, sometimes an illusion is all you have.
 """
     },
-    (14, 7, "w"): {
+    (17, 4, "w"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-west from luxury goods store
+A winding tunnel carved through stacked shipping containers and guarded by Toxic Mutants, smelling of ozone and expensive alloys.
 """
     },
     (19, 6): {
@@ -460,19 +699,19 @@ The point where Coreway Alpha meets Spine Road is marked by ‘The Oracle’ –
     (19, 6, "n"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-north from junction of echoes
+Spine Road, a perpetually dust-choked path winding north and south at the east end of Control Station 7, is littered with discarded LLM chassis segments – looking like bleached vertebrae under the crimson sun – and haunted by scavenging Toxic Mutants picking clean the still-warm processing cores.
 """
     },
     (19, 6, "s"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-south from junction of echoes
+Spine Road sharply curves and narrows into “The Ribcage,” a particularly treacherous stretch where leaning hab-units almost touch, forming shadowy alleys favored by data-pirate Furries and offering scant protection from the acid rain that drips constantly from corroded ventilation shafts.
 """
     },
     (19, 6, "w"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-west from junction of echoes
+Corway Alpha’s eastern segment, a claustrophobic canyon of stacked hab-units patched together with salvaged metal and glowing fungal gardens, hums with the constant chatter of Furry families, the whirring of LLM domestic assistants, and the occasional frustrated shout from a Human trying to negotiate rent with a robotic landlord.
 """
     },
     (19, 9): {
@@ -496,7 +735,7 @@ The Ossuary isn’t just a repository of history; it’s a living, breathing ent
     (19, 9, "s"): {
         "prototype_parent": "xyz_exit",
         "desc": """
-south from temple
+Spine Road, a perpetually dust-choked path winding north and south at the east end of Control Station 7, is littered with discarded LLM chassis segments – looking like bleached vertebrae under the crimson sun – and haunted by scavenging Toxic Mutants picking clean the still-warm processing cores.
 """
     },
 }
@@ -516,6 +755,8 @@ LEGEND = {
     "⚕": DrugStoreNode,
     "☥": TempleNode,
     "⚜": LuxuryStoreNode,
+    "Ψ": ArenaNode,
+    "☠": AreaExitNode,
 }
 
 MAP_STR = """
@@ -532,13 +773,13 @@ MAP_STR = """
          |   |   |                       |
  5       |   $   ♫                 o-----o
          |                         |
- 4     H-R                         R-⚜
+ 4     ☠-R                         R-⚜
          |                         |
- 3       o-------------R--ΞBΞ--X---o
+ 3       o-------------R--ΞBΞ--R---o
                        |       |
- 2                     | H---H |
-                       | |   | |
- 1                     oΞBΞΞΞBΞo
+ 2                     |   Ψ   |
+                       |   |   |
+ 1                     oΞΞΞBΞΞΞo
 
  0
 
