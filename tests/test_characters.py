@@ -133,19 +133,6 @@ class TestCharacters(AinneveTestMixin):
         self.assertEqual(self.char1.stamina, 1)
         self.assertEqual(self.char1.mana, 1)
 
-    def test_at_pay(self):
-        """ Test that paying deducts coins properly. """
-        self.char1.coins = 100
-
-        result = self.char1.at_pay(60)
-        self.assertEqual(result, 60)
-        self.assertEqual(self.char1.coins, 40)
-
-        # can't get more coins than we have
-        result = self.char1.at_pay(100)
-        self.assertEqual(result, 40)
-        self.assertEqual(self.char1.coins, 0)
-
     @patch("typeclasses.characters.Character.at_look")
     def test_at_post_move(self, mock_at_look):
         """ Test that look is called after a character moves. """
@@ -169,8 +156,8 @@ class TestCharacters(AinneveTestMixin):
 One ugly motherfucker.
 This is a character.
 
-Right Hand: weapon
-Left Hand: shield
-Body: armor
-Head: helmet
+Right Hand: |nweapon|n
+Left Hand: |nshield|n
+Body: |narmor|n
+Head: |nhelmet|n
 """)

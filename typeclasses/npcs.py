@@ -26,7 +26,6 @@ class NPC(BaseCharacter):
     is_idle = AttributeProperty(default=False, autocreate=False)
 
     weapon = AttributeProperty(autocreate=False)  # instead of inventory
-    coins = AttributeProperty(default=1, autocreate=False)  # coin loot
 
     def at_object_creation(self):
         """

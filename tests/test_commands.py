@@ -3,14 +3,15 @@ Test custom commands.
 
 """
 
-from unittest.mock import call, patch
-from anything import Something
+from unittest.mock import patch
 
+from evennia.prototypes.spawner import spawn
 from evennia.utils.ansi import strip_ansi
 from evennia.utils.create import create_object
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from typeclasses.npcs import ShopKeeper
+from world.common import item_prototypes
 from commands import game, prefs
 from .mixins import AinneveTestMixin
 
@@ -93,15 +94,36 @@ Current stats:
         self.char1.db.desc = "This is Char."
         self.call(
             game.CmdCharSheet(),
-            "charsheet",
+            "",
             expected_output
         )
+
+    @patch("typeclasses.objects.QuantumLatticeObject.combine")
+    def test_combine(self, mock_combine):
+        """ Test the command for combining quantum lattices. """
+
+        self.call(
+            game.CmdCombine(),
+            "",
+            "You must specify something to combine."
+        )
+
+        self.call(
+            game.CmdCombine(),
+            "junk",
+            "Could not find 'junk' among your quantum lattices."
+        )
+
+        ql = spawn(item_prototypes.QL_DUST_SHARD | {"location": self.char1})[0]
+        self.char1.equipment.move(ql)
+        self.call(game.CmdCombine(), "dust shard")
+        mock_combine.assert_called_with(self.char1)
 
     def test_inventory(self):
         """ Test that the inventory command shows your inventory. """
         self.call(
             game.CmdInventory(),
-            "inventory",
+            "",
             """
 You are fighting with your bare fists and have no shield.
 You wear no armor and no helmet.
@@ -131,50 +153,6 @@ You use 0/11 equipment slots.
         self.call(game.CmdWieldOrWear(), "helmet", "You put helmet on your head.")
 
         self.call(game.CmdRemove(), "helmet", "You stash helmet in your backpack.")
-
-    def test_give__coins(self):
-        """
-        Test that the give coins command gives coins to the other character.
-        It should also not let you give more coins than you have.
-        """
-        self.char2.key = "Friend"
-        self.char2.coins = 0
-        self.char1.coins = 100
-
-        self.call(game.CmdGive(), "40 coins to friend", "You give Friend 40 coins.")
-        self.assertEqual(self.char1.coins, 60)
-        self.assertEqual(self.char2.coins, 40)
-
-        self.call(game.CmdGive(), "10 to friend", "You give Friend 10 coins.")
-        self.assertEqual(self.char1.coins, 50)
-        self.assertEqual(self.char2.coins, 50)
-
-        self.call(game.CmdGive(), "60 to friend", "You only have 50 coins to give.")
-
-    @patch("commands.game.EvMenu")
-    def test_give__item(self, mock_ev_menu):
-        """ Test that the give item command creates a menu. """
-        self.char2.key = "Friend"
-        self.char1.equipment.add(self.helmet)
-
-        self.call(game.CmdGive(), "helmet to friend", "")
-
-        mock_ev_menu.assert_has_calls(
-            (
-                call(
-                    self.char2,
-                    {"node_receive": Something, "node_end": Something},
-                    startnode="node_receive",
-                    startnode_input=("", {"item": self.helmet, "giver": self.char1}),
-                ),
-                call(
-                    self.char1,
-                    {"node_give": Something, "node_end": Something},
-                    startnode="node_give",
-                    startnode_input=("", {"item": self.helmet, "receiver": self.char2}),
-                ),
-            )
-        )
 
     @patch("typeclasses.npcs.EvMenu")
     def test_talk(self, mock_ev_menu):

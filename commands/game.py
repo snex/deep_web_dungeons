@@ -7,15 +7,12 @@ be needed.
 
 """
 
-from evennia import InterruptCommand
-from evennia.utils.evmenu import EvMenu
 from evennia.utils.utils import inherits_from
 
 from typeclasses.npcs import TalkativeNPC, InsultNPC
+from typeclasses.objects import QuantumLatticeObject
 
 from world.enums import WieldLocation
-from world.equipment import EquipmentError
-from world.utils import get_obj_stats
 
 from .command import Command
 
@@ -63,6 +60,36 @@ class CmdCharSheet(Command):
                 description=self.caller.db.desc
             )
         )
+
+class CmdCombine(Command):
+    """
+    Combine 3 quantum lattices into a lattice of the next tier
+
+    Usage:
+      combine <quantum_lattice>
+
+    """
+
+    key = "combine"
+
+    def func(self):
+        if not self.args:
+            self.caller.msg("You must specify something to combine.")
+            return
+
+        ql = self.caller.search(
+            self.args,
+            quiet=True,
+            candidates=self.caller.equipment.all(only_objs=True),
+            typeclass=QuantumLatticeObject,
+        )[:1]
+
+        if not ql:
+            self.caller.msg(f"Could not find '{self.args}' among your quantum lattices.")
+            return
+
+        self.caller.msg(ql[0].combine(self.caller))
+
 
 class CmdInventory(Command):
     """
@@ -176,241 +203,6 @@ class CmdRemove(Command):
         caller.equipment.remove(item)
         caller.equipment.add(item)
         caller.msg(f"You stash {item.key} in your backpack.")
-
-
-# give / accept menu
-
-
-def _rescind_gift(_caller, raw_string, **kwargs):
-    """
-    Called when giver rescinds their gift in `node_give` below.
-    It means they entered 'cancel' on the gift screen.
-
-    """
-    # kill the gift menu for the receiver immediately
-    receiver = kwargs["receiver"]
-    receiver.ndb._evmenu.close_menu()
-    receiver.msg("The offer was rescinded.")
-    return "node_end"
-
-
-def node_give(caller, raw_string, **kwargs):
-    """
-    This will show to the giver until receiver accepts/declines. It allows them
-    to rescind their offer.
-
-    The `caller` here is the one giving the item. We also make sure to feed
-    the 'item' and 'receiver' into the Evmenu.
-
-    """
-    item = kwargs["item"]
-    receiver = kwargs["receiver"]
-    text = f"""
-You are offering {item.key} to {receiver.get_display_name(looker=caller)}.
-|wWaiting for them to accept or reject the offer ...|n
-""".strip()
-
-    options = {
-        "key": ("cancel", "abort"),
-        "desc": "Rescind your offer.",
-        "goto": (_rescind_gift, kwargs),
-    }
-    return text, options
-
-
-def _accept_or_reject_gift(caller, raw_string, **kwargs):
-    """
-    Called when receiver enters yes/no in `node_receive` below. We first need to
-    figure out which.
-
-    """
-    item = kwargs["item"]
-    giver = kwargs["giver"]
-    if raw_string.lower() in ("yes", "y"):
-        # they accepted - move the item!
-        item = giver.equipment.remove(item)
-        if item:
-            try:
-                # this will also add them to the equipment backpack, if possible
-                item.move_to(caller, quiet=True, move_type="give")
-            except EquipmentError:
-                caller.location.msg_contents(
-                    f"$You({giver.key.key}) $conj(try) to give "
-                    f"{item.key} to $You({caller.key}), but they can't accept it since their "
-                    "inventory is full.",
-                    mapping={giver.key: giver, caller.key: caller},
-                )
-            else:
-                caller.location.msg_contents(
-                    f"$You({giver.key}) $conj(give) {item.key} to $You({caller.key}), "
-                    "and they accepted the offer.",
-                    mapping={giver.key: giver, caller.key: caller},
-                )
-        giver.ndb._evmenu.close_menu()
-
-    return "node_end"
-
-
-def node_receive(caller, raw_string, **kwargs):
-    """
-    Will show to the receiver and allow them to accept/decline the offer for
-    as long as the giver didn't rescind it.
-
-    The `caller` here is the one receiving the item. We also make sure to feed
-    the 'item' and 'giver' into the EvMenu.
-
-    """
-    item = kwargs["item"]
-    giver = kwargs["giver"]
-    text = f"""
-{giver.get_display_name()} is offering you {item.key}:
-
-{get_obj_stats(item)}
-
-[Your inventory usage: {caller.equipment.display_slot_usage()}]
-|wDo you want to accept the given item? Y/[N]
-    """
-    options = ({"key": "_default", "goto": (_accept_or_reject_gift, kwargs)},)
-    return text, options
-
-
-def node_end(_caller, raw_string, **kwargs):
-    """ End the give/receive menu. """
-    return "", None
-
-
-class CmdGive(Command):
-    """
-    Give item or money to another person. Items need to be accepted before
-    they change hands. Money changes hands immediately with no wait.
-
-    Usage:
-      give <item> to <receiver>
-      give <number of coins> [coins] to receiver
-
-    If item name includes ' to ', surround it in quotes.
-
-    Examples:
-      give apple to ranger
-      give "road to happiness" to sad ranger
-      give 10 coins to ranger
-      give 12 to ranger
-
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.item_name = None
-        self.receiver_name = None
-        self.receiver = None
-        self.coins = None
-
-    key = "give"
-
-    def parse(self):
-        """
-        Parsing is a little more complex for this command.
-
-        """
-        super().parse()
-        args = self.args
-        if " to " not in args:
-            self.caller.msg(
-                "Usage: give <item> to <recevier>. Specify e.g. '10 coins' to pay money. "
-                "Use quotes around the item name it if includes the substring ' to '. "
-            )
-            # disable pylint here as evennnia defines this Exception strangely
-            raise InterruptCommand # pylint: disable=raising-bad-type
-
-        self.item_name = ""
-        self.coins = 0
-
-        # make sure we can use '...' to include items with ' to ' in the name
-        if args.startswith('"') and args.count('"') > 1:
-            end_ind = args[1:].index('"') + 1
-            item_name = args[:end_ind]
-            _, receiver_name = args.split(" to ", 1)
-        elif args.startswith("'") and args.count("'") > 1:
-            end_ind = args[1:].index("'") + 1
-            item_name = args[:end_ind]
-            _, receiver_name = args.split(" to ", 1)
-        else:
-            item_name, receiver_name = args.split(" to ", 1)
-
-        # a coin count rather than a normal name
-        if " coins" in item_name:
-            item_name = item_name[:-6]
-        if item_name.isnumeric():
-            self.coins = max(0, int(item_name))
-
-        self.item_name = item_name
-        self.receiver_name = receiver_name
-
-    def _give_coins(self):
-        current_coins = self.caller.coins
-        if self.coins > current_coins:
-            self.caller.msg(f"You only have |y{current_coins}|n coins to give.")
-            return
-        # do transaction
-        self.caller.coins -= self.coins
-        self.receiver.coins += self.coins
-        self.caller.location.msg_contents(
-            f"$You() $conj(give) $You({self.receiver.key}) {self.coins} coins.",
-            from_obj=self.caller,
-            mapping={self.receiver.key: self.receiver},
-        )
-        return
-
-    def _give_item(self):
-        item = self.caller.search(
-            self.item_name,
-            candidates=self.caller.equipment.all(only_objs=True)
-        )
-        if not item:
-            return
-
-        # testing hook
-        if not item.at_pre_give(self.caller, self.receiver):
-            return
-
-        # before we start menus, we must check so either part is not already in a menu,
-        # that would be annoying otherwise
-        if self.receiver.ndb._evmenu:
-            self.caller.msg(
-                f"{self.receiver.get_display_name(looker=self.caller)}"
-                " seems busy talking to someone else."
-            )
-            return
-        if self.caller.ndb._evmenu:
-            self.caller.msg("Close the current menu first.")
-            return
-
-        # this starts evmenus for both parties
-        EvMenu(
-            self.receiver,
-            {"node_receive": node_receive, "node_end": node_end},
-            startnode="node_receive",
-            startnode_input=("", {"item": item, "giver": self.caller})
-        )
-        EvMenu(
-            self.caller,
-            {"node_give": node_give, "node_end": node_end},
-            startnode="node_give",
-            startnode_input=("", {"item": item, "receiver": self.receiver})
-        )
-
-    def func(self):
-        self.receiver = self.caller.search(self.receiver_name)
-        if not self.receiver:
-            return
-
-        # giving of coins is always accepted
-        if self.coins:
-            self._give_coins()
-            return
-
-        # giving of items require acceptance before it happens
-        self._give_item()
 
 class CmdTalk(Command):
     """

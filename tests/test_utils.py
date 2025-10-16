@@ -32,3 +32,46 @@ Quality: |wN/A|n, Uses: |wN/A|n
 Attacks using |wNo attack|n against |wNo defense|n
 """,
         )
+
+    def test_each_cons(self):
+        """ test each_cons """
+
+        l = [1, 2, 3, 4]
+        self.assertEqual(
+            utils.each_cons(l, 2),
+            [[1, 2], [2, 3], [3, 4]]
+        )
+        self.assertEqual(
+            utils.each_cons(l, 3),
+            [[1, 2, 3], [2, 3, 4]]
+        )
+
+    def test_each_slice(self):
+        """ test each_slice """
+
+        l = [1, 2, 3, 4, 5, 6]
+        self.assertEqual(
+            list(utils.each_slice(l, 2)),
+            [[1, 2], [3, 4], [5, 6]]
+        )
+        self.assertEqual(
+            list(utils.each_slice(l, 3)),
+            [[1, 2, 3], [4, 5, 6]]
+        )
+
+    def test_list_flatten(self):
+        """ test list_flatten """
+
+        l = [[1, 2], [3, 4], [5, 6]]
+        self.assertEqual(
+            utils.list_flatten(l),
+            [1, 2, 3, 4, 5, 6]
+        )
+
+    def test_rainbow(self):
+        """ test rainbow effect on text """
+
+        self.assertEqual(
+            utils.rainbow("rainbow!"),
+            "|rr|530a|yi|gn|bb|co|mw|r!|n"
+        )

@@ -216,37 +216,41 @@ class EquipmentHandler:
 
         two_hands = slots[WieldLocation.TWO_HANDS]
         if two_hands:
-            weapon_str = f"You wield {two_hands} with both hands."
+            weapon_str = f"You wield {two_hands.get_display_name()} with both hands."
             shield_str = ""
         else:
             one_hands = slots[WieldLocation.WEAPON_HAND]
             if one_hands:
-                weapon_str = f"You are wielding {one_hands} in one hand."
+                weapon_str = f"You are wielding {one_hands.get_display_name()} in one hand."
             shield = slots[WieldLocation.SHIELD_HAND]
             if shield:
-                shield_str = f" You have {shield} in your off hand."
+                shield_str = f" You have {shield.get_display_name()} in your off hand."
 
         armor = slots[WieldLocation.BODY]
         if armor:
-            armor_str = f"You are wearing {armor}"
+            armor_str = f"You are wearing {armor.get_display_name()}"
 
         helmet = slots[WieldLocation.HEAD]
         if helmet:
-            helmet_str = f" and {helmet} on your head."
+            helmet_str = f" and {helmet.get_display_name()} on your head."
 
         return f"{weapon_str}{shield_str}\n{armor_str}{helmet_str}"
+
+    def _obj_order(self, obj):
+        """ Use the object's key to sort it in the backpack display. """
+        return obj.key
 
     def display_backpack(self):
         """
         Get a visual representation of the backpack's contents.
 
         """
-        backpack = self.slots[WieldLocation.BACKPACK]
+        backpack = sorted(self.slots[WieldLocation.BACKPACK], key=self._obj_order)
         if not backpack:
             return "Backpack is empty."
         out = []
         for item in backpack:
-            out.append(f"{item.key} [|b{item.size}|n] slot(s)")
+            out.append(f"{item.get_display_name()} [|b{item.size}|n] slot(s)")
         return "\n".join(out)
 
     def display_slot_usage(self):
@@ -257,7 +261,7 @@ class EquipmentHandler:
             str: The usage string.
 
         """
-        return f"|b{self.count_slots()}/{self.max_slots}|n"
+        return f"|b{round(self.count_slots(), 2)}/{self.max_slots}|n"
 
     def move(self, obj):
         """

@@ -5,11 +5,101 @@ from world.enums import(
     CombatRange,
     DefenseType,
     PhysicalObjectMaterial,
+    QuantumLatticeType,
     TechArmorMaterial,
     TechHelmetMaterial,
     TechWeaponMaterial,
     WieldLocation
 )
+from world.utils import rainbow
+
+BASE_QUANTUM_LATTICE = {
+    "prototype_key": "base_quantum_lattice",
+    "typeclass": "typeclasses.objects.QuantumLatticeObject",
+}
+
+QL_DUST_SHARD = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "dust_shard",
+    "key": "dust shard",
+    "ql_type": QuantumLatticeType.DUST_SHARD,
+    "desc": "|xDust |xshards|n can be used on a tier 2+ item to reroll a random affix. Combine 3"
+            " |xdust shards|n into a |cstatic |cbloom|n."
+}
+
+QL_STATIC_BLOOM = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "static_bloom",
+    "key": "static bloom",
+    "ql_type": QuantumLatticeType.STATIC_BLOOM,
+    "desc": "|cStatic |cblooms|n can be used on a tier 2+ item to remove a random affix. Combine 3"
+            " |cstatic |cblooms|n into an |Gecho |Gstone|n."
+}
+
+QL_ECHO_STONE = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "echo_stone",
+    "key": "echo stone",
+    "ql_type": QuantumLatticeType.ECHO_STONE,
+    "desc": "|GEcho |Gstones|n can be used on a tier 2+ item to add a random affix. Combine 3"
+            " |Gecho |Gstones|n into a |yresonance |ycrystal|n."
+}
+
+QL_RESONANCE_CRYSTAL = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "resonance_crystal",
+    "key": "resonance crystal",
+    "ql_type": QuantumLatticeType.RESONANCE_CRYSTAL,
+    "desc": "|yResonance |ycrystals|n can be used on a tier 1 item to convert it into a tier 2 item"
+            " with no affixes. Combine 3 |yresonance |ycrystals|n into a |[x|Xsingularity"
+            " |[x|Xshard|n."
+}
+
+QL_SINGULARITY_SHARD = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "singularity_shard",
+    "key": "singularity shard",
+    "ql_type": QuantumLatticeType.SINGULARITY_SHARD,
+    "desc": "|[x|XSingularity |[x|Xshards|n can be used on a tier 2+ item to lower its tier by 1."
+            " Random affixes beyond what the new lower tier allows will be removed. Combine 3"
+            " |[x|Xsingularity |[x|Xshards|n into a |530phase |530pearl|n."
+}
+
+QL_PHASE_PEARL = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "phase_pearl",
+    "key": "phase pearl",
+    "ql_type": QuantumLatticeType.PHASE_PEARL,
+    "desc": "|530Phase |530pearls|n can be used on a tier 2 item to convert it into a tier 3 item."
+            " Combine 3 |530phase |530pearls|n into a |Mvoid |Mspark|n."
+}
+
+QL_VOID_SPARK = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "void_spark",
+    "key": "void spark",
+    "ql_type": QuantumLatticeType.VOID_SPARK,
+    "desc": "|MVoid |Msparks|n can be used on a tier 2+ item to wipe all of its affixes. Combine 3"
+            f" |Mvoid |Msparks|n into a {rainbow('chromatic heart')}."
+}
+
+QL_CHROMATIC_HEART = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "chromatic_heart",
+    "key": "chromatic heart",
+    "ql_type": QuantumLatticeType.CHROMATIC_HEART,
+    "desc": f"{rainbow('Chromatic hearts')} can be used on a tier 3 item to convert it into a tier"
+            f" 4 item. Combine 3 {rainbow('chromatic hearts')} into a |[w|xnexus |[w|xdiamond|n."
+}
+
+QL_NEXUS_DIAMOND = {
+    "prototype_parent": "base_quantum_lattice",
+    "prototype_key": "nexus_diamond",
+    "key": "nexus diamond",
+    "display_name": "|[w|xnexus |[w|xdiamond|n",
+    "ql_type": QuantumLatticeType.NEXUS_DIAMOND,
+    "desc": "|[w|xNexus |[w|xdiamonds|n can be used on any item to convert it into a tier 4 item."
+}
 
 BASE_WEAPON = {
     "prototype_key": "base_weapon",

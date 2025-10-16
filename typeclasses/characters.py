@@ -43,7 +43,6 @@ class BaseCharacter(
     is_pc = False
 
     gender = AttributeProperty(default="male")
-    coins = AttributeProperty(default=0)  # copper coins
     aggro = AttributeProperty(default="n")  # Defensive, Normal, or Aggressive (d/n/a)
     physical_appearance = AttributeProperty(default="One ugly motherfucker.")
 
@@ -64,44 +63,6 @@ class BaseCharacter(
             self.combat.remove(self)
 
         self.location.msg_contents("$You() $conj(die).", from_obj=self)
-
-    def at_pay(self, amount):
-        """
-        Get coins, but no more than we actually have.
-
-        """
-        amount = min(amount, self.coins)
-        self.coins -= amount
-        return amount
-
-    def at_looted(self, looter):
-        """
-        Called when being looted (after defeat).
-
-        Args:
-            looter (Object): The one doing the looting.
-
-        """
-        max_steal = rules.dice.roll("1d10")
-        stolen = self.at_pay(max_steal)
-
-        looter.coins += stolen
-
-        self.location.msg_contents(
-            f"$You(looter) loots $You() for {stolen} coins!",
-            from_obj=self,
-            mapping={"looter": looter},
-        )
-
-    def at_do_loot(self, defeated_enemy):
-        """
-        Called when looting another entity.
-
-        Args:
-            defeated_enemy: The thing to loot.
-
-        """
-        defeated_enemy.at_looted(self)
 
 
 class Character(BaseCharacter):
@@ -313,10 +274,10 @@ class Character(BaseCharacter):
 
     def _display_loadout(self):
         return f"""
-Right Hand: {self.equipment.weapon}
-Left Hand: {self.equipment.shield}
-Body: {self.equipment.armor_item}
-Head: {self.equipment.helmet}
+Right Hand: {self.equipment.weapon.get_display_name(self)}
+Left Hand: {self.equipment.shield.get_display_name(self)}
+Body: {self.equipment.armor_item.get_display_name(self)}
+Head: {self.equipment.helmet.get_display_name(self)}
 """.strip()
 
     def return_appearance(self, looker, **kwargs):
