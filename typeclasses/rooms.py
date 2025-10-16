@@ -5,32 +5,9 @@ Rooms are simple containers that has no location of their own.
 
 """
 
+from django.utils.translation import gettext as _
 from evennia.contrib.grid.xyzgrid.xyzroom import XYZRoom
 from evennia.objects.objects import DefaultRoom
-
-CHAR_SYMBOL = "|w@|n"
-CHAR_ALT_SYMBOL = "|w>|n"
-ROOM_SYMBOL = "|bo|n"
-LINK_COLOR = "|B"
-
-_MAP_GRID = [
-    [" ", " ", " ", " ", " "],
-    [" ", " ", " ", " ", " "],
-    [" ", " ", "@", " ", " "],
-    [" ", " ", " ", " ", " "],
-    [" ", " ", " ", " ", " "],
-]
-_EXIT_GRID_SHIFT = {
-    "north": (0, 1, "||"),
-    "east": (1, 0, "-"),
-    "south": (0, -1, "||"),
-    "west": (-1, 0, "-"),
-    "northeast": (1, 1, "/"),
-    "southeast": (1, -1, "\\"),
-    "southwest": (-1, -1, "/"),
-    "northwest": (-1, 1, "\\"),
-}
-
 
 class Room(DefaultRoom):
     """
@@ -66,9 +43,6 @@ class TownRoom(Room, XYZRoom):
             return ""
 
         return super().get_display_desc(looker, **kwargs)
-
-
-
 
 class PvPRoom(Room):
     """

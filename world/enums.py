@@ -48,6 +48,20 @@ class ObjType(Enum):
     GEAR = "gear"
     QUEST = "quest"
     TREASURE = "treasure"
+    CURRENCY = "currency"
+
+class QuantumLatticeType(Enum):
+    """ The different types of quantum lattices. """
+
+    DUST_SHARD = "dust shard"
+    STATIC_BLOOM = "static bloom"
+    ECHO_STONE = "echo stone"
+    RESONANCE_CRYSTAL = "resonance crystal"
+    SINGULARITY_SHARD = "singularity shard"
+    PHASE_PEARL = "phase pearl"
+    VOID_SPARK = "void spark"
+    CHROMATIC_HEART = "chromatic heart"
+    NEXUS_DIAMOND = "nexus diamond"
 
 class PhysicalObjectMaterial(Enum):
     """ Physical object materials. """

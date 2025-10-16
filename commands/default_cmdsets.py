@@ -15,9 +15,10 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 """
 
 from evennia import default_cmds
+from evennia.contrib.game_systems.barter.barter import CmdTrade
 from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
 
-from .game import CmdCharSheet, CmdInventory, CmdWieldOrWear, CmdRemove, CmdGive, CmdTalk
+from .game import CmdCharSheet, CmdCombine, CmdInventory, CmdWieldOrWear, CmdRemove, CmdTalk
 from .look import CmdLook
 from .ooc import CmdCharCreate
 from .prefs import CmdPrefs
@@ -42,11 +43,12 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
 
         # non-combat commands
         self.add(CmdCharSheet())
+        self.add(CmdCombine())
         self.add(CmdInventory())
         self.add(CmdWieldOrWear())
         self.add(CmdRemove())
-        self.add(CmdGive())
         self.add(CmdTalk())
+        self.add(CmdTrade())
 
         # combat commands
         self.add(CmdInitiateCombat())

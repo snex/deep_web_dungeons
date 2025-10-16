@@ -3,6 +3,8 @@ Various utilities.
 
 """
 
+import itertools
+
 _OBJ_STATS = """
 {display_name}{carried}
 
@@ -71,11 +73,17 @@ def each_slice(iterable, size):
 
 def list_flatten(iterable):
     """
-    Flattens a list so that there are no elements that are also lists.
+    Flattens a list of lists so that it is only the original items.
 
-    e.g. list_flatten([1, 2, [3, 4]]) -> [1, 2, 3, 4]
+    e.g. list_flatten([[1, 2], [3, 4]]) -> [1, 2, 3, 4]
 
-    Similar to ruby's `flatten` but will only do 1 layer deep
+    Similar to ruby's `flatten` but will only do 1 layer deep and requires all items to be lists
     """
 
     return [item for items in iterable for item in items]
+
+def rainbow(text):
+    """ Apply a rainbow color effect to the input text. """
+
+    colors = ["|r", "|530", "|y", "|g", "|b", "|c", "|m"]
+    return "".join(list_flatten(list(zip(itertools.cycle(colors), list(text))))) + "|n"

@@ -105,14 +105,14 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
         self.char1.equipment.move(self.helmet)
         self.assertEqual(
             self.char1.equipment.display_loadout(),
-            "You are wielding weapon in one hand. You have shield in your off hand.\n"
-            "You are wearing armor and helmet on your head."
+            "You are wielding |nweapon|n in one hand. You have |nshield|n in your off hand.\n"
+            "You are wearing |narmor|n and |nhelmet|n on your head."
         )
         self.char1.equipment.move(self.big_weapon)
         self.assertEqual(
             self.char1.equipment.display_loadout(),
-            "You wield big_weapon with both hands.\n"
-            "You are wearing armor and helmet on your head."
+            "You wield |nbig_weapon|n with both hands.\n"
+            "You are wearing |narmor|n and |nhelmet|n on your head."
         )
 
     def test_display_backpack(self):

@@ -202,7 +202,7 @@ class BuyItem:
         Get the short description to show in buy list.
 
         """
-        return f"{self.key} [|y{self.value}|n coins]"
+        return f"{self.key}"
 
     def get_detail(self):
         """
