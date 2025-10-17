@@ -27,6 +27,26 @@ from world.utils import get_obj_stats, rainbow
 
 _INFLECT = inflect.engine()
 
+class NoneObject:
+    """
+    This exists for situations where we expect an object but no object was available
+        so that chained methods don't crash.
+
+        e.g. me.weapon.get_display_name()
+    """
+
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(NoneObject, cls).__new__(cls)
+        return cls.instance
+
+    def __bool__(self):
+        return False
+
+    def get_display_name(self, *args, **kwargs):
+        """ Return 'None' no matter what. """
+        return "None"
+
 class Object(DefaultObject):
     """
     Base in-game entity.
@@ -50,6 +70,13 @@ class Object(DefaultObject):
         for obj_type in make_iter(self.obj_type):
             self.tags.add(obj_type.value, category="obj_type")
         self.locks.add("view: not_in_foreign_backpack()")
+
+    def at_pre_use(self, *args, **kwargs):
+        """
+        called before an object is used.
+        returns `False` if object cannot be used. override in subclasses.
+        """
+        return False
 
     def _apply_color(self, custom_text=None):
         """
@@ -403,6 +430,9 @@ class WeaponBareHands(WeaponObject):
     attack_type = Ability.STR
     defense_type = DefenseType.ARMOR
     damage_roll = "1d4"
+
+    def _apply_color(self, custom_text=None):
+        return "|xbare hands|n"
 
     def can_parry(self):
         return False

@@ -116,7 +116,7 @@ class TestCombatCommands(AinneveTestMixin, EvenniaCommandTest):
         self.call(
             combat.CmdHit(),
             "rat",
-            "You hit rat with your Bare Hands",
+            "You hit rat with your bare hands",
         )
         self.char1.cooldowns.clear()
 
