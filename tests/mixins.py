@@ -45,7 +45,7 @@ class AinneveTestMixin(EvenniaTest):
         self.weapon = create.create_object(
             WeaponObject,
             key="weapon",
-            attributes=[("inventory_use_slot", WieldLocation.WEAPON_HAND)]
+            attributes=[("inventory_use_slot", WieldLocation.WEAPON_HAND), ("tier", 1)]
         )
         self.big_weapon = create.create_object(
             WeaponObject,

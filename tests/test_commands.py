@@ -74,18 +74,26 @@ ______________________________________________________________________________
     def test_charsheet(self):
         """ Test that the charsheet command shows your character sheet. """
         expected_output = strip_ansi("""
-|wChar the female Human Antifa Rioter|n
-
-STR +1
-CUN -1
-WIL +1
-
-This is Char.
-
-Current stats:
-    Health: |gPerfect|n
-    Mana: |gPerfect|n
-    Stamina: |gPerfect|n
++------------------------------------------------------------------------------+
+|                                                                              |
+|                                     Char                                     |
+|                                                                              |
+|  Gender:          female               STR:                              +1  |
+|  Race:            Human                CUN:                              -1  |
+|  Class:           Antifa Rioter        WIL:                              +1  |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|  One ugly motherfucker.                                                      |
+|  This is Char.                                                               |
+|                                                                              |
++------------------------------------------------------------------------------+
+|                                                                              |
+|  Health:            Perfect            No Status Effects                     |
+|  System Load:       Perfect                                                  |
+|  Stamina:           Perfect                                                  |
+|                                                                              |
++------------------------------------------------------------------------------+
 """)
         self.char1.gender = "female"
         self.char1.race_key = "human"
@@ -95,7 +103,8 @@ Current stats:
         self.call(
             game.CmdCharSheet(),
             "",
-            expected_output
+            expected_output,
+            stripmenu=False,
         )
 
     @patch("typeclasses.objects.QuantumLatticeObject.combine")
@@ -121,15 +130,42 @@ Current stats:
 
     def test_inventory(self):
         """ Test that the inventory command shows your inventory. """
+
+        plate = spawn(item_prototypes.ARMOR_CHEST_PLATE | {"location": self.char1})[0]
+        self.char1.equipment.move(plate)
+        ql = spawn(item_prototypes.QL_DUST_SHARD | {"location": self.char1})[0]
+        self.char1.equipment.move(ql)
+        expected_output = strip_ansi("""
++------------------------------------------------------------------------------+
+|                                                                              |
+|  R.Hand: bare hands              1.00  L.Hand: None                          |
+|  Body:   plasteel chest plate    1.00  Helmet: None                          |
+|  Arms:   None                          Legs:   None                          |
+|                                                                              |
++------------------------------------------------------------------------------+
+|                                                                              |
+|   Qty Item                         Wt   Qty Item                         Wt  |
+|     1 dust shard                 0.01                                        |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|  Capacity 1.01/11                                                  Page 1/1  |
++------------------------------------------------------------------------------+
+""")
         self.call(
             game.CmdInventory(),
             "",
-            """
-You are fighting with your bare fists and have no shield.
-You wear no armor and no helmet.
-Backpack is empty.
-You use 0/11 equipment slots.
-""".strip(),
+            expected_output,
+            stripmenu=False,
         )
 
     def test_wield_or_wear(self):

@@ -7,6 +7,7 @@ be needed.
 
 """
 
+from evennia.utils import evform, evtable
 from evennia.utils.utils import inherits_from
 
 from typeclasses.npcs import TalkativeNPC, InsultNPC
@@ -15,21 +16,6 @@ from typeclasses.objects import QuantumLatticeObject
 from world.enums import WieldLocation
 
 from .command import Command
-
-_CHAR_SHEET = """
-|w{name} the {gender} {race} {cclass}|n
-
-STR {str_plus_minus}{strength}
-CUN {cun_plus_minus}{cunning}
-WIL {wil_plus_minus}{will}
-
-{description}
-
-Current stats:
-    Health: {hurt_level}
-    Mana: {mana_level}
-    Stamina: {stamina_level}
-"""
 
 class CmdCharSheet(Command):
     """View your character sheet
@@ -42,24 +28,46 @@ class CmdCharSheet(Command):
     aliases = ("c", "cs", "char")
 
     def func(self):
-        self.caller.msg(
-            _CHAR_SHEET.format(
-                name=self.caller.name,
-                gender=self.caller.gender,
-                str_plus_minus=("+" if self.caller.strength >= 0 else ""),
-                strength=self.caller.strength,
-                cun_plus_minus=("+" if self.caller.cunning >= 0 else ""),
-                cunning=self.caller.cunning,
-                wil_plus_minus=("+" if self.caller.will >= 0 else ""),
-                will=self.caller.will,
-                race=self.caller.race,
-                cclass=self.caller.cclass,
-                hurt_level=self.caller.hurt_level,
-                mana_level=self.caller.mana_level,
-                stamina_level=self.caller.stamina_level,
-                description=self.caller.db.desc
-            )
+        charsheet = evform.EvForm("world.charsheet")
+        base_info = evtable.EvTable(border=None)
+        base_info.add_row("|cGender|n: ", self.caller.gender)
+        base_info.add_row("|cRace|n: ", self.caller.race.name)
+        base_info.add_row("|cClass|n: ", self.caller.cclass.name)
+        abilities = evtable.EvTable(border=None)
+        abilities.add_row(
+            "|cSTR|n: ",
+            f"{'+' if self.caller.strength >=0 else ''}{self.caller.strength}"
         )
+        abilities.add_row(
+            "|cCUN|n: ",
+            f"{'+' if self.caller.cunning >=0 else ''}{self.caller.cunning}"
+        )
+        abilities.add_row(
+            "|cWIL|n: ",
+            f"{'+' if self.caller.will >= 0 else ''}{self.caller.will}"
+        )
+        abilities.reformat_column(1, align="r")
+        description = evtable.EvTable(border=None, valign="b")
+        description.add_row(f"{self.caller.physical_appearance}\n{self.caller.db.desc}")
+        cur_status = evtable.EvTable(border=None)
+        cur_status.add_row("|cHealth|n: ", self.caller.hurt_level)
+        cur_status.add_row("|cSystem Load|n: ", self.caller.mana_level)
+        cur_status.add_row("|cStamina|n: ", self.caller.stamina_level)
+        status_effects = evtable.EvTable(border=None)
+        status_effects.add_row("No Status Effects")
+        charsheet.map(
+            tables={
+                "2": base_info,
+                "3": abilities,
+                "4": description,
+                "5": cur_status,
+                "6": status_effects,
+            },
+            cells={
+                "1": evtable.EvCell(f"|c{self.caller.name}|n", align="c")
+            },
+        )
+        self.caller.msg(charsheet)
 
 class CmdCombine(Command):
     """
@@ -96,20 +104,98 @@ class CmdInventory(Command):
     View your inventory
 
     Usage:
-      inventory
+      inventory [page]
 
     """
 
     key = "inventory"
     aliases = ("i", "inv")
 
+    def parse(self):
+        self.args = self.args.strip().split(' ', 1)[0]
+
     def func(self):
-        loadout = self.caller.equipment.display_loadout()
-        backpack = self.caller.equipment.display_backpack()
-        slot_usage = self.caller.equipment.display_slot_usage()
+        eq = self.caller.equipment
+        inventory = evform.EvForm("world.inventory")
+        equipped_l = evtable.EvTable(border=None)
+        equipped_l.add_row(
+            "R.Hand: ",
+            eq.weapon.get_display_name() if eq.weapon else "None",
+            f"|b{float(eq.weapon.size):0.2f}|n" if eq.weapon else "",
+        )
+        equipped_l.add_row(
+            "Body: ",
+            eq.armor_item.get_display_name() if eq.armor_item else "None",
+            f"|b{float(eq.armor_item.size):0.2f}|n" if eq.armor_item else "",
+        )
+        equipped_l.add_row(
+            "Arms: ",
+            "None",
+            "",
+        )
+        equipped_l.reformat_column(0, width=8)
+        equipped_l.reformat_column(2, align="r", width=6)
+        equipped_r = evtable.EvTable(border=None)
+        l_hand = "None"
+        if eq.weapon.inventory_use_slot == WieldLocation.TWO_HANDS:
+            l_hand = eq.weapon.get_display_name()
+        if eq.shield:
+            l_hand = eq.shield.get_display_name()
 
-        self.caller.msg(f"{loadout}\n{backpack}\nYou use {slot_usage} equipment slots.")
+        equipped_r.add_row(
+            "L.Hand: ",
+            l_hand,
+            f"|b{float(eq.shield.size):0.2f}|n" if eq.shield else "",
+        )
+        equipped_r.add_row(
+            "Helmet: ",
+            eq.helmet.get_display_name() if eq.helmet else "None",
+            f"|b{float(eq.helmet.size):0.2f}|n" if eq.helmet else "",
+        )
+        equipped_r.add_row(
+            "Legs: ",
+            "None",
+            "",
+        )
+        equipped_r.reformat_column(0, width=8)
+        equipped_r.reformat_column(2, align="r", width=6)
 
+        page, total_pages, backpack = self.caller.equipment.paged_backpack(self.args)
+        backpack_l = evtable.EvTable(border=None)
+        backpack_l.add_header("|uQty|U", "|uItem|U", "|uWt|U")
+        for item in backpack[:12]:
+            backpack_l.add_row(
+                item[1]["quantity"],
+                item[0],
+                f"|b{round(float(item[1]['capacity']), 2):0.2f}|n",
+            )
+        backpack_l.reformat_column(0, align="r", width=4)
+        backpack_l.reformat_column(1, pad_left=1)
+        backpack_l.reformat_column(2, align="r", width=6)
+        backpack_r = evtable.EvTable(border=None)
+        backpack_r.add_header("|uQty|U", "|uItem|U", "|uWt|U")
+        for item in backpack[12:]:
+            backpack_r.add_row(
+                item[1]["quantity"],
+                item[0],
+                f"|b{round(float(item[1]['capacity']), 2):0.2f}|n",
+            )
+        backpack_r.reformat_column(0, align="r", width=4)
+        backpack_r.reformat_column(1, pad_left=1)
+        backpack_r.reformat_column(2, align="r", width=6)
+        inventory.map(
+            tables={
+                "1": equipped_l,
+                "2": equipped_r,
+                "3": backpack_l,
+                "4": backpack_r,
+            },
+            cells={
+                "5": eq.display_slot_usage(),
+                "6": evtable.EvCell(f"Page {page}/{total_pages}", align="r"),
+            },
+        )
+        self.caller.msg(inventory)
 
 class CmdWieldOrWear(Command):
     """
@@ -152,7 +238,7 @@ class CmdWieldOrWear(Command):
         current = self.caller.equipment.slots[use_slot]
 
         if current == item:
-            self.caller.msg(f"You are already using {item.key}.")
+            self.caller.msg(f"You are already using {item.get_display_name()}.")
             return
 
         # move it to the right slot based on the type of object
@@ -160,8 +246,8 @@ class CmdWieldOrWear(Command):
 
         # inform the user of the change (and potential swap)
         if current:
-            self.caller.msg(f"Returning {current.key} to the backpack.")
-        self.caller.msg(self.out_txts[use_slot].format(key=item.key))
+            self.caller.msg(f"Returning {current.get_display_name()} to the backpack.")
+        self.caller.msg(self.out_txts[use_slot].format(key=item.get_display_name()))
 
 
 class CmdRemove(Command):
@@ -202,7 +288,7 @@ class CmdRemove(Command):
 
         caller.equipment.remove(item)
         caller.equipment.add(item)
-        caller.msg(f"You stash {item.key} in your backpack.")
+        caller.msg(f"You stash {item.get_display_name()} in your backpack.")
 
 class CmdTalk(Command):
     """
