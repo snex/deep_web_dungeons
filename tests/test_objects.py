@@ -3,6 +3,7 @@ Test Objects.
 """
 
 from evennia.prototypes.spawner import spawn
+from evennia.utils.ansi import strip_ansi
 from evennia.utils.test_resources import EvenniaTest
 
 from world.enums import WieldLocation
@@ -28,15 +29,33 @@ class TestObject(AinneveTestMixin, EvenniaTest):
     def test_return_appaerance(self):
         """ show details about the object """
         ration = spawn("ration")[0]
-        self.assertEqual(ration.return_appearance(self.char1), """
-ration
-
-A grey protein block covered in pale-green nutrient paste.
-
-Slots: |w0.25|n, Used from: |wbackpack|n
-Quality: |wN/A|n, Uses: |w1|n
-Attacks using |wNo attack|n against |wNo defense|n
-""")
+        expected_output = strip_ansi("""
++------------------------------------------------------------------------------+
+|                                                                              |
+|                                    ration                                    |
+|   A grey protein block covered in pale-green nutrient paste. Recovers some   |
+|                              health when eaten.                              |
+|                                                                              |
++------------------------------------------------------------------------------+
+|                                                                              |
+|  Weight:           0.25                Uses:              1                  |
+|  Quality:          Perfect                                                   |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
++------------------------------------------------------------------------------+
+""").strip()
+        self.assertEqual(strip_ansi(ration.return_appearance(self.char1).strip()), expected_output)
 
 class TestQuantumLatticeObject(AinneveTestMixin, EvenniaTest):
     """ Test QuantumLatticeObject. """

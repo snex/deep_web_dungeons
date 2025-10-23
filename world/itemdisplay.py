@@ -1,4 +1,4 @@
-""" inventory sheet form """
+""" form to display info about items """
 
 # pylint: disable=duplicate-code
 
@@ -8,13 +8,14 @@ TABLECHAR = "c"
 FORM = """
 +------------------------------------------------------------------------------+
 |                                                                              |
-|  cccccccccccccccccc1ccccccccccccccccc  cccccccccccccccccc2ccccccccccccccccc  |
-|  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
-|  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
+|  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  |
+|  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  |
+|  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  |
 |                                                                              |
 +------------------------------------------------------------------------------+
 |                                                                              |
-|  cccccccccccccccccc3ccccccccccccccccc  cccccccccccccccccc4ccccccccccccccccc  |
+|  cccccccccccccccc2ccccccccccccccccccc  cccccccccccccccccc3ccccccccccccccccc  |
+|  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
 |  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
 |  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
 |  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
@@ -28,6 +29,5 @@ FORM = """
 |  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
 |  cccccccccccccccccccccccccccccccccccc  cccccccccccccccccccccccccccccccccccc  |
 |                                                                              |
-|  Capacity xxxxxx5xxxxxxx                                       xxxxxxxx6xxx  |
 +------------------------------------------------------------------------------+
 """

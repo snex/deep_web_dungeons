@@ -4,6 +4,7 @@ Tests of the utils module.
 """
 
 from evennia.utils import create
+from evennia.utils.ansi import strip_ansi
 from evennia.utils.test_resources import EvenniaTest
 
 from world import utils
@@ -18,20 +19,35 @@ class TestUtils(EvenniaTest):
         obj = create.create_object(
             Object, key="testobj", attributes=(("desc", "A test object"),)
         )
-        result = utils.get_obj_stats(obj)
+        expected_output = strip_ansi("""
++------------------------------------------------------------------------------+
+|                                                                              |
+|                                                                              |
+|                                   testobj                                    |
+|                                A test object                                 |
+|                                                                              |
++------------------------------------------------------------------------------+
+|                                                                              |
+|  Weight:           1                                    --                   |
+|  Quality:          Perfect                                                   |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                                                              |
++------------------------------------------------------------------------------+
+""").strip()
+        result = strip_ansi(utils.get_obj_stats(obj)).strip()
 
-        self.assertEqual(
-            result,
-            """
-testobj
-
-A test object
-
-Slots: |w1|n, Used from: |wbackpack|n
-Quality: |wN/A|n, Uses: |wN/A|n
-Attacks using |wNo attack|n against |wNo defense|n
-""",
-        )
+        self.assertEqual(result, expected_output)
 
     def test_each_cons(self):
         """ test each_cons """

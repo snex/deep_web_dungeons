@@ -1,5 +1,7 @@
 """ character sheet form """
 
+# pylint: disable=duplicate-code
+
 FORMCHAR = "x"
 TABLECHAR = "c"
 

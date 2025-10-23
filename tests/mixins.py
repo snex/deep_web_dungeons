@@ -26,6 +26,7 @@ class AinneveTestMixin(EvenniaTest):
         super().setUp()
         # remove default dev permissions from first test account so test chars have equivalent perms
         self.account.permissions.remove('Developer')
+        self.char1.cclass_key = "antifa_rioter"
 
         self.helmet = create.create_object(
             Helmet,

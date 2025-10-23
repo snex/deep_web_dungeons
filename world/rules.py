@@ -157,5 +157,5 @@ class DiceRollEngine:
 
 # singletons
 
-# access rolls e.g. with world.rules.dice.opposed_saving_throw(...)
+# access rolls e.g. with world.rules.dice.roll(...)
 dice = DiceRollEngine()

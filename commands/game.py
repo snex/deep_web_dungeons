@@ -232,6 +232,10 @@ class CmdWieldOrWear(Command):
             self.caller.msg("You must carry the item you want to wield or wear.")
             return
 
+        if not item.access(self.caller, "wear_wield"):
+            self.caller.msg("You cannot equip that item.")
+            return
+
         use_slot = getattr(item, "inventory_use_slot", WieldLocation.BACKPACK)
 
         # check what is currently in this slot

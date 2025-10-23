@@ -12,7 +12,7 @@ from evennia.utils.test_resources import EvenniaCommandTest
 
 from typeclasses.npcs import ShopKeeper
 from world.common import item_prototypes
-from commands import game, prefs
+from commands import admin, game, prefs
 from .mixins import AinneveTestMixin
 
 
@@ -205,4 +205,49 @@ ______________________________________________________________________________
             startnode="node_start",
             session=None,
             npc=npc,
+        )
+
+    @patch("random.randint")
+    @patch("random.choice")
+    def test_spawn_rand(self, mock_choice, mock_randint):
+        """ test spawning a random item using ItemSpawner """
+        mock_choice.side_effect = ["dildorang", item_prototypes.MATERIAL_PHYSICAL_PLASTEEL]
+        mock_randint.side_effect = [0, 0, 20, 2, 1, 2]
+        self.call(
+            admin.CmdSpawnRand(),
+            "",
+            "a caustic nucular plasteel dildorang dropped."
+        )
+        mock_choice.side_effect = [
+            "dildorang",
+            item_prototypes.MATERIAL_PHYSICAL_PLASTEEL,
+            "nexus_diamond"
+        ]
+        mock_randint.side_effect = [0, 0, 20, 2, 1, 2, 0, 0, 1, 1]
+        self.call(
+            admin.CmdSpawnRand(),
+            "2",
+            "a caustic nucular plasteel dildorang dropped.|a nexus diamond dropped."
+        )
+        mock_choice.side_effect = [
+            "dildorang",
+            item_prototypes.MATERIAL_PHYSICAL_PLASTEEL,
+            "nexus_diamond"
+        ]
+        mock_randint.side_effect = [0, 0, 20, 2, 1, 2, 0, 0, 1, 1]
+        self.call(
+            admin.CmdSpawnRand(),
+            "2 notalevel",
+            "a caustic nucular plasteel dildorang dropped.|a nexus diamond dropped."
+        )
+        mock_choice.side_effect = [
+            "dildorang",
+            item_prototypes.MATERIAL_PHYSICAL_CHITIN,
+            "nexus_diamond"
+        ]
+        mock_randint.side_effect = [0, 0, 20, 2, 1, 2, 0, 0, 1, 1]
+        self.call(
+            admin.CmdSpawnRand(),
+            "2 10",
+            "a caustic nucular chitin dildorang dropped.|a nexus diamond dropped."
         )
