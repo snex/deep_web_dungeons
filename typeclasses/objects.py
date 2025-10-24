@@ -14,6 +14,7 @@ from evennia.prototypes.spawner import spawn
 from evennia.utils import ansi, logger
 from evennia.utils.utils import compress_whitespace, make_iter
 
+from world import quantum_lattices
 from world.affixes import AFFIXES
 from world.characters.classes import CHARACTER_CLASSES
 from world.common import item_prototypes
@@ -79,6 +80,7 @@ class Object(DefaultObject):
         called before an object is used.
         returns `False` if object cannot be used. override in subclasses.
         """
+        kwargs["caller"].msg("Nothing happens.")
         return False
 
     def _apply_color(self, custom_text=None):
@@ -260,6 +262,24 @@ class QuantumLatticeObject(Object):
         }
     }
 
+    def at_pre_use(self, *args, **kwargs):
+        item = args[0]
+        caller = kwargs["caller"]
+
+        if not item:
+            caller.msg(f"What do you want to use {self.get_display_name()} on?")
+            return False
+
+        try:
+            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self, item)
+            if not ql.can_use():
+                caller.msg(f"You can't use {self.get_display_name()} on {item.get_display_name()}")
+                return False
+            return True
+        except AttributeError:
+            logger.log_err(f"Tried to use a QuantumLatticeObject with unknown key: {self.key}")
+            return False
+
     def _apply_color(self, custom_text=None):
         """ Apply color based on QuantumLatticeType. """
 
@@ -300,6 +320,25 @@ class QuantumLatticeObject(Object):
         )[0]
         owner.equipment.move(new_ql)
         return f"You combine 3 {old_ql_display_name} into {new_ql.get_display_name()}."
+
+    def use(self, item, caller):
+        """
+        use the QL by calling a specific class per QL
+
+        at_post_use should be called inside the class so it can pass the msg and perform any
+        other side effects
+        """
+        try:
+            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self, item)
+            ql.use(caller)
+        except AttributeError:
+            logger.log_err(f"Tried to use a QuantumLatticeObject with unknown key: {self.key}")
+
+    def at_post_use(self, caller, msg):
+        """ call after using a QL. message the caller what it did and delete it """
+        caller.msg(msg)
+        caller.equipment.remove(self)
+        self.delete()
 
     def _get_next_tier(self):
         """ Gets the next tier of QuantumLattice from the current one. """

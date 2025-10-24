@@ -168,6 +168,41 @@ ______________________________________________________________________________
             stripmenu=False,
         )
 
+    def test_use(self):
+        """ test using an object """
+        self.call(game.CmdUse(), "bike lock", "Could not find 'bike lock'")
+        bike = spawn(item_prototypes.WEAPON_BIKE_LOCK | {"location": self.char1.location})[0]
+        self.call(game.CmdUse(), "bike lock", "Could not find 'bike lock'")
+        self.char1.equipment.move(bike)
+        self.call(game.CmdUse(), "bike lock", "Nothing happens.")
+
+        self.call(game.CmdUse(), "echo stone", "Could not find 'echo stone'")
+        bike = spawn(item_prototypes.QL_ECHO_STONE | {"location": self.char1.location})[0]
+        self.call(game.CmdUse(), "echo stone", "Could not find 'echo stone'")
+        self.char1.equipment.move(bike)
+        self.call(
+            game.CmdUse(),
+            "echo stone on bike lock",
+            "You can't use echo stone on plasteel bike lock"
+        )
+
+        self.call(game.CmdUse(), "resonance crystal", "Could not find 'resonance crystal'")
+        bike = spawn(item_prototypes.QL_RESONANCE_CRYSTAL | {"location": self.char1.location})[0]
+        self.call(game.CmdUse(), "resonance crystal", "Could not find 'resonance crystal'")
+        self.char1.equipment.move(bike)
+        self.call(
+            game.CmdUse(),
+            "resonance crystal",
+            "What do you want to use resonance crystal on?"
+        )
+
+        self.call(
+            game.CmdUse(),
+            "resonance crystal on bike lock",
+            "The resonance crystal crumbles away and transforms the plasteel bike lock into a"
+            " plasteel bike lock."
+        )
+
     def test_wield_or_wear(self):
         """ Test that wearing or wielding gear equips it. """
         self.char1.equipment.add(self.helmet)

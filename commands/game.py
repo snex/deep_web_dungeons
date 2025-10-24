@@ -7,6 +7,7 @@ be needed.
 
 """
 
+from evennia.commands.cmdhandler import InterruptCommand
 from evennia.utils import evform, evtable
 from evennia.utils.utils import inherits_from
 
@@ -196,6 +197,70 @@ class CmdInventory(Command):
             },
         )
         self.caller.msg(inventory)
+
+class CmdUse(Command):
+    """
+    Use a usable item.
+
+    Usage:
+      use <item>
+      use <item> [on otheritem]
+    """
+
+    key = "use"
+
+    def __init__(self):
+        super().__init__()
+        self.subject_obj = None
+        self.object_obj = None
+
+    def parse(self):
+        """ assign the object to be used and the object to be used upon, if available """
+        args = self.args.strip().rsplit(" on ", 1)
+
+        subject_obj = self.caller.search(
+            args[0],
+            quiet=True,
+            candidates=self.caller.equipment.all(only_objs=True),
+        )
+
+        if len(args) > 1:
+            object_obj = self.caller.search(
+                args[1],
+                quiet=True,
+                candidates=self.caller.equipment.all(only_objs=True),
+            )
+
+            if not object_obj:
+                subject_obj_retry = self.caller.search(
+                    self.args.strip(),
+                    quiet=True,
+                    candidates=self.caller.equipment.all(only_objs=True),
+                )
+
+                if not subject_obj_retry and not subject_obj:
+                    self.caller.msg(f"Could not find '{args[0]}' or '{self.args.strip()}'.")
+                    raise InterruptCommand
+
+                self.caller.msg(f"Could not find '{args[1]}'.")
+                raise InterruptCommand
+
+            self.object_obj = self.caller.search(
+                args[1],
+                candidates=self.caller.equipment.all(only_objs=True),
+            )
+
+        self.subject_obj = self.caller.search(
+            args[0],
+            candidates=self.caller.equipment.all(only_objs=True),
+        )
+
+    def func(self):
+        if not self.subject_obj:
+            return
+
+        if self.subject_obj.at_pre_use(self.object_obj, caller=self.caller):
+            self.subject_obj.use(self.object_obj, caller=self.caller)
 
 class CmdWieldOrWear(Command):
     """

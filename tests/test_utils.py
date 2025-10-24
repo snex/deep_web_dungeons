@@ -26,11 +26,11 @@ class TestUtils(EvenniaTest):
 |                                   testobj                                    |
 |                                A test object                                 |
 |                                                                              |
+|                                                                              |
 +------------------------------------------------------------------------------+
 |                                                                              |
 |  Weight:           1                                    --                   |
 |  Quality:          Perfect                                                   |
-|                                                                              |
 |                                                                              |
 |                                                                              |
 |                                                                              |

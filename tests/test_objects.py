@@ -36,11 +36,11 @@ class TestObject(AinneveTestMixin, EvenniaTest):
 |   A grey protein block covered in pale-green nutrient paste. Recovers some   |
 |                              health when eaten.                              |
 |                                                                              |
+|                                                                              |
 +------------------------------------------------------------------------------+
 |                                                                              |
 |  Weight:           0.25                Uses:              1                  |
 |  Quality:          Perfect                                                   |
-|                                                                              |
 |                                                                              |
 |                                                                              |
 |                                                                              |

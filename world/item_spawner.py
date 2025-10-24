@@ -269,6 +269,31 @@ class ItemSpawner:
 
         return tier
 
+    def roll_affix(self, droppable, level, exclude=None):
+        """ roll a single affix appropriate for the item and level """
+        affix_rollables = self.pm.rollables_by_level(
+            level,
+            "affix",
+            must_include=droppable["typeclass"],
+            exclude=exclude
+        )
+        options = sorted([
+            rollable["prototype_key"]
+            for rollable in affix_rollables
+        ])
+        logger.log_err(f"possible affixes: {options}")
+        if not affix_rollables:
+            logger.log_err(
+                f"Ran out of affixes for {droppable['prototype_key']},"
+                 " fix your prototypes"
+            )
+            return None
+        affix = ""
+        while affix not in options:
+            affix = self.roll_drop_table("affixes")
+        logger.log_err(f"rolled affix: {affix}")
+        return affix
+
     def roll_affixes(self, droppable, level, tier):
         """ roll affixes appropriate for the item, level, and tier """
         affixes = []
@@ -277,27 +302,9 @@ class ItemSpawner:
             affix_count = random.randint(2*(tier-1)-1,2*(tier-1))
             logger.log_err(f"rolled tier {tier}, rolling {affix_count} affixes...")
             for _ in range(affix_count):
-                affix_rollables = self.pm.rollables_by_level(
-                    level,
-                    "affix",
-                    must_include=droppable["typeclass"],
-                    exclude=affixes
-                )
-                options = sorted([
-                    rollable["prototype_key"]
-                    for rollable in affix_rollables
-                ])
-                logger.log_err(f"possible affixes: {options}")
-                if not affix_rollables:
-                    logger.log_err(
-                        f"Ran out of affixes for {droppable['prototype_key']},"
-                         " fix your prototypes"
-                    )
+                affix = self.roll_affix(droppable, level, affixes)
+                if not affix:
                     return affixes
-                affix = ""
-                while affix not in options:
-                    affix = self.roll_drop_table("affixes")
-                logger.log_err(f"rolled affix: {affix}")
                 affixes.append(affix)
 
         return affixes

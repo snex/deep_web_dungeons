@@ -37,7 +37,7 @@ QL_STATIC_BLOOM = {
     "prototype_tags": ["droppable", "quantum_lattice", "static_bloom"],
     "key": "static bloom",
     "ql_type": QuantumLatticeType.STATIC_BLOOM,
-    "desc": "|cStatic |cblooms|n can be used on a tier 2+ item to remove a random affix. Combine 3"
+    "desc": "|cStatic |cblooms|n can be used on a tier 2+ item to remove a chosen affix. Combine 3"
             " |cstatic |cblooms|n into an |Gecho |Gstone|n."
 }
 

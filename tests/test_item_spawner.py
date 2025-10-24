@@ -111,6 +111,7 @@ class BaseItemSpawnerTest(BaseEvenniaTest):
     def tearDown(self):
         self.all_droppables_patcher.stop()
         self.all_rollables_patcher.stop()
+        super().tearDown()
 
 class PrototypeManagerTest(BaseItemSpawnerTest):
     """ test the PrototypeManager """
@@ -168,6 +169,7 @@ class ItemSpawnerTest(BaseItemSpawnerTest):
         self.drop_tables_patcher.stop()
         self.randint_patcher.stop()
         self.search_prototype_patcher.stop()
+        super().tearDown()
 
     def test_roll_drop_table(self):
         """ test rolling from the drop table """
@@ -204,6 +206,13 @@ class ItemSpawnerTest(BaseItemSpawnerTest):
         self.assertEqual(self.sp.roll_tier(DROPPABLE_1), 0)
         self.mock_randint.return_value = 2
         self.assertEqual(self.sp.roll_tier(DROPPABLE_3), "tier_2")
+
+    def test_roll_affix(self):
+        """ test rolling a single affix """
+        self.mock_randint.side_effect = [1]
+        self.assertEqual(self.sp.roll_affix(DROPPABLE_1, 1), "rollable_1")
+        self.mock_randint.side_effect = [1, 4]
+        self.assertEqual(self.sp.roll_affix(DROPPABLE_1, 1, ["rollable_1"]), "rollable_4")
 
     def test_roll_affixes(self):
         """ test rolling item affixes """
