@@ -18,7 +18,16 @@ from evennia import default_cmds
 from evennia.contrib.game_systems.barter.barter import CmdTrade
 from evennia.contrib.grid.xyzgrid.commands import XYZGridCmdSet
 
-from .game import CmdCharSheet, CmdCombine, CmdInventory, CmdWieldOrWear, CmdRemove, CmdTalk
+from .admin import CmdSpawnRand
+from .game import (
+    CmdCharSheet,
+    CmdCombine,
+    CmdInventory,
+    CmdWieldOrWear,
+    CmdRemove,
+    CmdTalk,
+    CmdUse
+)
 from .look import CmdLook
 from .ooc import CmdCharCreate
 from .prefs import CmdPrefs
@@ -49,6 +58,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdRemove())
         self.add(CmdTalk())
         self.add(CmdTrade())
+        self.add(CmdUse())
 
         # combat commands
         self.add(CmdInitiateCombat())
@@ -57,6 +67,9 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdAdvance())
         self.add(CmdRetreat())
         self.add(CmdFlee())
+
+        # admin commands
+        self.add(CmdSpawnRand())
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """

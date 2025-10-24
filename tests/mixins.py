@@ -26,6 +26,7 @@ class AinneveTestMixin(EvenniaTest):
         super().setUp()
         # remove default dev permissions from first test account so test chars have equivalent perms
         self.account.permissions.remove('Developer')
+        self.char1.cclass_key = "antifa_rioter"
 
         self.helmet = create.create_object(
             Helmet,
@@ -45,7 +46,7 @@ class AinneveTestMixin(EvenniaTest):
         self.weapon = create.create_object(
             WeaponObject,
             key="weapon",
-            attributes=[("inventory_use_slot", WieldLocation.WEAPON_HAND)]
+            attributes=[("inventory_use_slot", WieldLocation.WEAPON_HAND), ("tier", 1)]
         )
         self.big_weapon = create.create_object(
             WeaponObject,

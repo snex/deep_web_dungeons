@@ -5,6 +5,7 @@ The Object is the base class for things in the game world.
 
 Note that the default Character, Room and Exit do not inherit from Object.
 """
+import bisect
 import inflect
 
 from evennia import AttributeProperty
@@ -13,6 +14,9 @@ from evennia.prototypes.spawner import spawn
 from evennia.utils import ansi, logger
 from evennia.utils.utils import compress_whitespace, make_iter
 
+from world import quantum_lattices
+from world.affixes import AFFIXES
+from world.characters.classes import CHARACTER_CLASSES
 from world.common import item_prototypes
 from world.enums import (
     Ability,
@@ -26,6 +30,26 @@ from world.enums import (
 from world.utils import get_obj_stats, rainbow
 
 _INFLECT = inflect.engine()
+
+class NoneObject:
+    """
+    This exists for situations where we expect an object but no object was available
+        so that chained methods don't crash.
+
+        e.g. me.weapon.get_display_name()
+    """
+
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(NoneObject, cls).__new__(cls)
+        return cls.instance
+
+    def __bool__(self):
+        return False
+
+    def get_display_name(self, *args, **kwargs):
+        """ Return 'None' no matter what. """
+        return "None"
 
 class Object(DefaultObject):
     """
@@ -41,7 +65,6 @@ class Object(DefaultObject):
     material = AttributeProperty(default="")
     tier = AttributeProperty(default=0)
     display_name = AttributeProperty(default=None)
-    color = AttributeProperty(default="|n")
 
     # can also be an iterable, for adding multiple obj-type tags
     obj_type = ObjType.GEAR
@@ -50,6 +73,15 @@ class Object(DefaultObject):
         for obj_type in make_iter(self.obj_type):
             self.tags.add(obj_type.value, category="obj_type")
         self.locks.add("view: not_in_foreign_backpack()")
+        self.locks.add("wear_wield: character_can_equip_item()")
+
+    def at_pre_use(self, *args, **kwargs):
+        """
+        called before an object is used.
+        returns `False` if object cannot be used. override in subclasses.
+        """
+        kwargs["caller"].msg("Nothing happens.")
+        return False
 
     def _apply_color(self, custom_text=None):
         """
@@ -107,11 +139,11 @@ class Object(DefaultObject):
         raw_key = ansi.ANSIString(key)  # this is needed to allow inflection of colored names
         try:
             plural = _INFLECT.plural(raw_key, count)
-            plural = f"{_INFLECT.number_to_words(count, threshold=12)} {plural}"
+            plural = f"{_INFLECT.number_to_words(count, threshold=12)} {plural}".strip()
         except IndexError:
             # this is raised by inflect if the input is not a proper noun
             plural = raw_key
-        singular = _INFLECT.an(raw_key)
+        singular = _INFLECT.an(raw_key).strip()
         if not self.aliases.get(plural, category=self.plural_category):
             # we need to wipe any old plurals/an/a in case key changed in the interrim
             self.aliases.clear(category=self.plural_category)
@@ -132,6 +164,19 @@ class Object(DefaultObject):
             return self._apply_color(custom_text=plural)
 
         return self._apply_color(custom_text=singular), self._apply_color(custom_text=plural)
+
+    @property
+    def damage_level(self):
+        """ base Objects don't get damaged. override this in subclasses """
+        return "|gPerfect|n"
+
+    def get_item_type_stats(self, _looker=None):
+        """
+        a dict of item stats special to a given object type. override in subclasses
+
+        when overriding, you likely want to merge with super()
+        """
+        return {}
 
     def return_appearance(self, looker, **kwargs):
         return get_obj_stats(self, owner=looker)
@@ -217,6 +262,24 @@ class QuantumLatticeObject(Object):
         }
     }
 
+    def at_pre_use(self, *args, **kwargs):
+        item = args[0]
+        caller = kwargs["caller"]
+
+        if not item:
+            caller.msg(f"What do you want to use {self.get_display_name()} on?")
+            return False
+
+        try:
+            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self, item)
+            if not ql.can_use():
+                caller.msg(f"You can't use {self.get_display_name()} on {item.get_display_name()}")
+                return False
+            return True
+        except AttributeError:
+            logger.log_err(f"Tried to use a QuantumLatticeObject with unknown key: {self.key}")
+            return False
+
     def _apply_color(self, custom_text=None):
         """ Apply color based on QuantumLatticeType. """
 
@@ -257,6 +320,25 @@ class QuantumLatticeObject(Object):
         )[0]
         owner.equipment.move(new_ql)
         return f"You combine 3 {old_ql_display_name} into {new_ql.get_display_name()}."
+
+    def use(self, item, caller):
+        """
+        use the QL by calling a specific class per QL
+
+        at_post_use should be called inside the class so it can pass the msg and perform any
+        other side effects
+        """
+        try:
+            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self, item)
+            ql.use(caller)
+        except AttributeError:
+            logger.log_err(f"Tried to use a QuantumLatticeObject with unknown key: {self.key}")
+
+    def at_post_use(self, caller, msg):
+        """ call after using a QL. message the caller what it did and delete it """
+        caller.msg(msg)
+        caller.equipment.remove(self)
+        self.delete()
 
     def _get_next_tier(self):
         """ Gets the next tier of QuantumLattice from the current one. """
@@ -325,6 +407,12 @@ class ConsumableObject(Object):
             user.msg(f"{self.key} was used up.")
             self.delete()
 
+    def get_item_type_stats(self, _looker=None):
+        """ ConsumableObjects have uses count """
+        return {
+            "Uses": self.uses
+        }
+
 class ConsumableHealingObject(ConsumableObject):
     """
     Item that heals when used.
@@ -343,6 +431,11 @@ class ConsumableHealingObject(ConsumableObject):
 class EquipmentObject(Object):
     """ Base class for all equippable items. """
 
+    allowed_classes = AttributeProperty(default=list(CHARACTER_CLASSES.values()))
+    required_level = AttributeProperty(default=1)
+    quality = AttributeProperty(default=100)
+    affixes = AttributeProperty(default=[])
+
     _TIER_DISPLAY_COLORS = [
         "|n", # Tier 0 items are not equippable and display in normal text
         "|x", # Tier 1 items have no affixes
@@ -350,6 +443,28 @@ class EquipmentObject(Object):
         "|Y", # Tier 3 items have 3 or 4 affixes
         "|g", # Tier 4 items have 5 or 6 affixes
     ]
+
+    def _display_prefixes(self):
+        return " ".join([
+            AFFIXES[prefix]["desc"]
+            for prefix in sorted(getattr(self, "affixes", []))
+            if prefix.startswith("prefix_")
+        ])
+
+    def _display_suffixes(self):
+        suffixes = [
+            AFFIXES[suffix]["desc"]
+            for suffix in sorted(getattr(self, "affixes", []))
+            if suffix.startswith("suffix_")
+        ]
+        if not suffixes:
+            return ""
+
+        if len(suffixes) == 1:
+            return f"of {suffixes[0]}"
+
+        joined_suffixes = ", ".join(suffixes[:-1]) + " and " + suffixes[-1]
+        return f"of {joined_suffixes}"
 
     def _apply_color(self, custom_text=None):
         """ Apply color based on equipment tier. """
@@ -366,7 +481,52 @@ class EquipmentObject(Object):
 
             return f"{color}{display_name}|n"
 
-        return compress_whitespace(f"{color}{material} {display_name}|n")
+        uncolored_name = compress_whitespace(
+            f"{self._display_prefixes()} {material} {display_name} {self._display_suffixes()}"
+        ).strip()
+        return f"{color}{uncolored_name}|n"
+
+    @property
+    def damage_level(self):
+        """ String describing how damaged an object is """
+
+        damage_levels = [
+            (1, "|RBroken!|n"),
+            (15, "|rFalling Apart|n"),
+            (30, "|rDamaged|n"),
+            (45, "|yDented|n"),
+            (60, "|yWorn|n"),
+            (80, "|GScratched|n"),
+            (95, "|gScuffed|n"),
+            (100, "|gPerfect|n"),
+        ]
+        percent = max(0, min(100, 100 * (self.quality / 100)))
+
+        return damage_levels[bisect.bisect_left(damage_levels, (percent,))][1]
+
+    def get_item_type_stats(self, looker=None):
+        """
+        EquipmentObjects have allowed classes and required level
+
+        Display in red if the looker does not meet the reqs, green if they do
+        """
+
+        req_level = self.required_level
+
+        if looker and looker.levels.level < req_level:
+            req_level = f"|r{req_level}|n"
+        else:
+            req_level = f"|g{req_level}|n"
+
+        allowed_cclasses = ", ".join([
+            f"|g{cclass.name}|n" if looker and looker.cclass == cclass else f"|r{cclass.name}|n"
+            for cclass in self.allowed_classes
+        ])
+
+        return super().get_item_type_stats(looker) | {
+            "Req. Level": req_level,
+            "Allowed Classes": allowed_cclasses,
+        }
 
 class WeaponObject(EquipmentObject):
     """
@@ -376,7 +536,6 @@ class WeaponObject(EquipmentObject):
 
     obj_type = ObjType.WEAPON
     inventory_use_slot: WieldLocation = AttributeProperty(WieldLocation.WEAPON_HAND)
-    quality: int = AttributeProperty(3)
 
     # maximum attack range for this weapon
     attack_range: CombatRange = AttributeProperty(CombatRange.MELEE)
@@ -394,6 +553,23 @@ class WeaponObject(EquipmentObject):
         """ Can this weapon parry attacks? """
         return self.parry
 
+    def get_item_type_stats(self, looker=None):
+        """
+        WeaponObjects have the following:
+            Range
+            Attack Type (what stat of yours boosts this weapon)
+            Defense Type (what stat of the enemy you roll against)
+            Cooldown (number of seconds before you can attack with this again)
+            Parry (whether this weapon can parry attacks)
+        """
+        return {
+            "Range": self.attack_range,
+            "Att. Type": self.attack_type,
+            "Def. Type": self.defense_type,
+            "Cooldown": f"{self.cooldown}s",
+            "Parry": "|gYes|n" if self.can_parry() else "|rNo|n",
+        } | super().get_item_type_stats(looker)
+
 class WeaponBareHands(WeaponObject):
     """
     Special class for bare hands when no weapon is wielded.
@@ -403,6 +579,9 @@ class WeaponBareHands(WeaponObject):
     attack_type = Ability.STR
     defense_type = DefenseType.ARMOR
     damage_roll = "1d4"
+
+    def _apply_color(self, custom_text=None):
+        return "|xbare hands|n"
 
     def can_parry(self):
         return False
@@ -417,8 +596,16 @@ class ArmorObject(EquipmentObject):
     inventory_use_slot = WieldLocation.BODY
 
     armor = AttributeProperty(1)
-    quality = AttributeProperty(3)
 
+    def get_item_type_stats(self, looker=None):
+        #TODO make armor bonus a physical description somehow
+        """
+        ArmorObjects have the following:
+            Armor (amount of armor bonus)
+        """
+        return {
+            "Armor": self.armor
+        } | super().get_item_type_stats(looker)
 
 class Shield(ArmorObject):
     """
@@ -428,6 +615,17 @@ class Shield(ArmorObject):
 
     obj_type = ObjType.SHIELD
     inventory_use_slot = WieldLocation.SHIELD_HAND
+    block = AttributeProperty(default=0)
+
+    def get_item_type_stats(self, looker=None):
+        #TODO block % a physical description somehow
+        """
+        ShieldObjects have the following:
+            Block (block chance)
+        """
+        return {
+            "Block": self.block
+        } | super().get_item_type_stats(looker)
 
 
 class Helmet(ArmorObject):

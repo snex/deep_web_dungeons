@@ -11,11 +11,13 @@ from server.conf.lockfuncs import (
     in_range,
     melee_equipped,
     ranged_equipped,
-    not_in_foreign_backpack
+    not_in_foreign_backpack,
+    character_can_equip_item,
 )
 from typeclasses.objects import WeaponObject
+from world.characters.classes import CHARACTER_CLASSES
 from world.combat import CombatHandler
-from world.enums import CombatRange
+from world.enums import CombatRange, WieldLocation
 
 class LockfuncsTest(EvenniaTest):
     """ test our lockfuncs """
@@ -96,3 +98,39 @@ class LockfuncsTest(EvenniaTest):
         self.char2.equipment.move(weapon2)
         self.assertTrue(not_in_foreign_backpack(self.char1, weapon2))
         self.assertTrue(not_in_foreign_backpack(self.char2, weapon2))
+
+    def test_character_can_equip_item(self):
+        """
+        test that a character can equip an item based on their character class and level
+        """
+
+        trash = create_object(WeaponObject, key="weapon")
+        self.assertFalse(character_can_equip_item(self.char1, trash))
+        trash = create_object(WeaponObject, key="weapon", attributes=[("required_level", 0)])
+        self.assertFalse(character_can_equip_item(self.char1, trash))
+        weapon = create_object(
+            WeaponObject,
+            key="weapon",
+            attributes=[
+                ("inventory_use_slot", WieldLocation.WEAPON_HAND),
+                ("allowed_classes", [CHARACTER_CLASSES["antifa_rioter"]]),
+                ("required_level", 5),
+            ],
+        )
+        self.assertFalse(character_can_equip_item(weapon, weapon))
+        self.char1.ndb.cclass = CHARACTER_CLASSES["antifa_rioter"]
+        self.char1.levels.level = 5
+        self.char1.save()
+        self.assertTrue(character_can_equip_item(self.char1, weapon))
+        self.char1.ndb.cclass = CHARACTER_CLASSES["hacker"]
+        self.char1.levels.level = 5
+        self.char1.save()
+        self.assertFalse(character_can_equip_item(self.char1, weapon))
+        self.char1.ndb.cclass = CHARACTER_CLASSES["antifa_rioter"]
+        self.char1.levels.level = 5
+        self.char1.save()
+        self.assertTrue(character_can_equip_item(self.char1, weapon))
+        self.char1.ndb.cclass = CHARACTER_CLASSES["antifa_rioter"]
+        self.char1.levels.level = 4
+        self.char1.save()
+        self.assertFalse(character_can_equip_item(self.char1, weapon))

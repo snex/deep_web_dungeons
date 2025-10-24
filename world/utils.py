@@ -5,24 +5,16 @@ Various utilities.
 
 import itertools
 
-_OBJ_STATS = """
-{display_name}{carried}
-
-{desc}
-
-Slots: |w{size}|n, Used from: |w{use_slot_name}|n
-Quality: |w{quality}|n, Uses: |w{uses}|n
-Attacks using |w{attack_type_name}|n against |w{defense_type_name}|n
-"""
-
+from evennia.utils import evform, evtable
+from world.enums import WieldLocation
 
 def get_obj_stats(obj, owner=None):
     """
     Get a string of stats about the object.
 
     Args:
-        obj (EvAdventureObject): The object to get stats for.
-        owner (EvAdventureCharacter, optional): If given, it allows us to
+        obj: The object to get stats for.
+        owner (optional): If given, it allows us to
             also get information about if the item is currently worn/wielded.
 
     Returns:
@@ -30,27 +22,50 @@ def get_obj_stats(obj, owner=None):
 
     """
     carried = ""
+    carry_locs = {
+        WieldLocation.BACKPACK: "carried in your backpack",
+        WieldLocation.WEAPON_HAND: "currently wielded in your right hand",
+        WieldLocation.SHIELD_HAND: "currently worn on your left hand",
+        WieldLocation.TWO_HANDS: "currently wielded in both hands",
+        WieldLocation.BODY: "currently worn",
+        WieldLocation.HEAD: "currently worn on your head",
+    }
     if owner:
         objmap = dict(owner.equipment.all())
         carried = objmap.get(obj)
-        carried = f", Worn: [{carried.value}]" if carried else ""
+        carried = f", {carry_locs[carried]}" if carried else ""
 
-    attack_type = getattr(obj, "attack_type", None)
-    defense_type = getattr(obj, "defense_type", None)
+    obj_stats = evform.EvForm("world.itemdisplay")
 
-    return _OBJ_STATS.format(
-        display_name=obj.get_display_name(owner),
-        value=obj.value,
-        carried=carried,
-        desc=obj.db.desc,
-        size=obj.size,
-        use_slot_name=obj.inventory_use_slot.value,
-        quality=getattr(obj, "quality", "N/A"),
-        uses=getattr(obj, "uses", "N/A"),
-        attack_type_name=attack_type.value if attack_type else "No attack",
-        defense_type_name=defense_type.value if defense_type else "No defense",
-        damage_roll=getattr(obj, "damage_roll", "None"),
+    base_stats = evtable.EvTable(border=None)
+    base_stats.add_row("|cWeight|n: ", obj.size)
+    base_stats.add_row("|cQuality|n: ", obj.damage_level)
+    item_type_stats = evtable.EvTable(border=None)
+    item_stats = obj.get_item_type_stats(owner).items()
+
+    if not item_stats:
+        item_type_stats.add_row("--")
+        item_type_stats.reformat_column(0, align="c")
+
+    for stat, value in item_stats:
+        item_type_stats.add_row(f"|c{stat}|n: ", value)
+
+    header = f"""
+{obj.get_display_name()}{carried}
+{obj.db.desc}
+""".strip()
+
+    obj_stats.map(
+        cells={
+            "1": evtable.EvCell(f"{header}", align="c")
+        },
+        tables={
+            "2": base_stats,
+            "3": item_type_stats,
+        },
     )
+
+    return str(obj_stats)
 
 def each_cons(iterable, n):
     """

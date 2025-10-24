@@ -272,14 +272,6 @@ class Character(BaseCharacter):
             # Send the map to the WebClient
             self.msg(map=map_getter(looker=self))
 
-    def _display_loadout(self):
-        return f"""
-Right Hand: {self.equipment.weapon.get_display_name(self)}
-Left Hand: {self.equipment.shield.get_display_name(self)}
-Body: {self.equipment.armor_item.get_display_name(self)}
-Head: {self.equipment.helmet.get_display_name(self)}
-""".strip()
-
     def return_appearance(self, looker, **kwargs):
         if not looker:
             return ""
@@ -289,5 +281,5 @@ Head: {self.equipment.helmet.get_display_name(self)}
             extra_name_info=self.get_extra_display_name_info(looker, **kwargs),
             physical_appearance=self.physical_appearance,
             desc=self.get_display_desc(looker, **kwargs),
-            things=self._display_loadout(),
+            things=self.equipment.display_loadout(),
         )

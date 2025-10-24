@@ -156,7 +156,7 @@ class TestCharacters(AinneveTestMixin):
 One ugly motherfucker.
 This is a character.
 
-Right Hand: |nweapon|n
+Right Hand: |xweapon|n
 Left Hand: |nshield|n
 Body: |narmor|n
 Head: |nhelmet|n

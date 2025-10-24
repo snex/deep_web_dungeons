@@ -3,9 +3,12 @@ Knave has a system of Slots for its inventory.
 
 """
 
+import itertools
+
 from evennia import search_object, create_object
+from evennia.utils import ansi
 from evennia.utils.utils import inherits_from
-from typeclasses.objects import Object, WeaponBareHands
+from typeclasses.objects import Object, NoneObject, WeaponBareHands
 
 from .enums import Ability, WieldLocation
 
@@ -34,11 +37,11 @@ class EquipmentHandler:
     def _empty_slots(self):
         return {
             WieldLocation.BACKPACK: [],
-            WieldLocation.WEAPON_HAND: None,
-            WieldLocation.SHIELD_HAND: None,
-            WieldLocation.TWO_HANDS: None,
-            WieldLocation.BODY: None,
-            WieldLocation.HEAD: None,
+            WieldLocation.WEAPON_HAND: NoneObject(),
+            WieldLocation.SHIELD_HAND: NoneObject(),
+            WieldLocation.TWO_HANDS: NoneObject(),
+            WieldLocation.BODY: NoneObject(),
+            WieldLocation.HEAD: NoneObject(),
         }
 
     def _load(self):
@@ -171,7 +174,7 @@ class EquipmentHandler:
         Conveniently get the currently active weapon.
 
         Returns:
-            obj or None: The weapon. None if unarmored.
+            obj or NoneObject: The weapon. None if unarmored.
 
         """
         # first checks two-handed wield, then one-handed; the two
@@ -188,70 +191,100 @@ class EquipmentHandler:
     @property
     def shield(self):
         """ Return the currently active shield. """
-        return self.slots[WieldLocation.SHIELD_HAND]
+        return self.slots[WieldLocation.SHIELD_HAND] or NoneObject()
 
     @property
     def armor_item(self):
         """ Return the currently worn armor. """
-        return self.slots[WieldLocation.BODY]
+        return self.slots[WieldLocation.BODY] or NoneObject()
 
     @property
-    def  helmet(self):
+    def helmet(self):
         """ Return the currently worn helmet. """
-        return self.slots[WieldLocation.HEAD]
+        return self.slots[WieldLocation.HEAD] or NoneObject()
 
     def display_loadout(self):
-        """
-        Get a visual representation of your current loadout.
+        """ displays the loadout for use with the `look` command """
 
-        Returns:
-            str: The current loadout.
-
-        """
-        slots = self.slots
-        weapon_str = "You are fighting with your |xbare fists|n"
-        shield_str = " and have no shield."
-        armor_str = "You wear no armor"
-        helmet_str = " and no helmet."
-
-        two_hands = slots[WieldLocation.TWO_HANDS]
-        if two_hands:
-            weapon_str = f"You wield {two_hands.get_display_name()} with both hands."
-            shield_str = ""
-        else:
-            one_hands = slots[WieldLocation.WEAPON_HAND]
-            if one_hands:
-                weapon_str = f"You are wielding {one_hands.get_display_name()} in one hand."
-            shield = slots[WieldLocation.SHIELD_HAND]
-            if shield:
-                shield_str = f" You have {shield.get_display_name()} in your off hand."
-
-        armor = slots[WieldLocation.BODY]
-        if armor:
-            armor_str = f"You are wearing {armor.get_display_name()}"
-
-        helmet = slots[WieldLocation.HEAD]
-        if helmet:
-            helmet_str = f" and {helmet.get_display_name()} on your head."
-
-        return f"{weapon_str}{shield_str}\n{armor_str}{helmet_str}"
+        l_hand = "None"
+        if self.weapon.inventory_use_slot == WieldLocation.TWO_HANDS:
+            l_hand = self.weapon.get_display_name()
+        if self.shield:
+            l_hand = self.shield.get_display_name()
+        return f"""
+Right Hand: {self.weapon.get_display_name()}
+Left Hand: {l_hand}
+Body: {self.armor_item.get_display_name()}
+Head: {self.helmet.get_display_name()}
+""".strip()
 
     def _obj_order(self, obj):
-        """ Use the object's key to sort it in the backpack display. """
-        return obj.key
+        """ Use the object's uncolored display_name to sort it in the backpack display. """
+        return ansi.ANSIString(obj.get_display_name())
 
-    def display_backpack(self):
+    def sorted_backpack(self):
         """
-        Get a visual representation of the backpack's contents.
+        return contents of the backpack sorted by key
 
+        contents is a dict in the following format:
+            {
+                "item.get_display_name()": {
+                    "capacity": TOTAL_CAPACITY_OF_THIS_ITEM,
+                    "quantity": TOTAL_QUANTITY_OF_THIS_ITEM,
+                }
+            }
         """
         backpack = sorted(self.slots[WieldLocation.BACKPACK], key=self._obj_order)
         if not backpack:
-            return "Backpack is empty."
-        out = []
+            return {}
+
+        ret = {}
+
         for item in backpack:
-            out.append(f"{item.get_display_name()} [|b{item.size}|n] slot(s)")
-        return "\n".join(out)
+            k = item.get_display_name()
+
+            if k in ret:
+                ret[k]["capacity"] += item.size
+                ret[k]["quantity"] += 1
+            else:
+                ret[k] = {
+                    "capacity": item.size,
+                    "quantity": 1,
+                }
+
+        return ret
+
+    def paged_backpack(self, page=1, per_page=24):
+        """
+        get the `page` page of the sorted backpack contents,
+            with a maximum of `per_page` items per page
+
+        Args: page - which page of the backpack to return. if NaN or < 1, return page 1
+                     if > total pages, return the last page
+              per_page - number of items per page. defaults to 24 to fit the inventory command
+
+        Returns a tuple containing the page, the total pages, and an array of tuples with the items
+        """
+
+        try:
+            per_page = int(per_page)
+        except ValueError:
+            per_page = 24
+
+        backpack = self.sorted_backpack()
+        total_pages = max(1, (len(backpack.keys()) -1) // per_page + 1)
+
+        try:
+            page = min(total_pages, max(1, int(page)))
+        except ValueError:
+            page = 1
+
+        start_idx = (page - 1) * per_page
+        return (
+            page,
+            total_pages,
+            list(itertools.islice(backpack.items(), start_idx, start_idx + per_page))
+        )
 
     def display_slot_usage(self):
         """
@@ -293,12 +326,12 @@ class EquipmentHandler:
         if use_slot is WieldLocation.TWO_HANDS:
             # two-handed weapons can't co-exist with weapon/shield-hand used items
             to_backpack = [slots[WieldLocation.WEAPON_HAND], slots[WieldLocation.SHIELD_HAND]]
-            slots[WieldLocation.WEAPON_HAND] = slots[WieldLocation.SHIELD_HAND] = None
+            slots[WieldLocation.WEAPON_HAND] = slots[WieldLocation.SHIELD_HAND] = NoneObject()
             slots[use_slot] = obj
         elif use_slot in (WieldLocation.WEAPON_HAND, WieldLocation.SHIELD_HAND):
             # can't keep a two-handed weapon if adding a one-handed weapon or shield
             to_backpack = [slots[WieldLocation.TWO_HANDS]]
-            slots[WieldLocation.TWO_HANDS] = None
+            slots[WieldLocation.TWO_HANDS] = NoneObject()
             slots[use_slot] = obj
         elif use_slot is WieldLocation.BACKPACK:
             # it belongs in backpack, so goes back to it
@@ -359,12 +392,12 @@ class EquipmentHandler:
                 slots[obj_or_slot] = []
             else:
                 ret.append(slots[obj_or_slot])
-                slots[obj_or_slot] = None
+                slots[obj_or_slot] = NoneObject()
         elif obj_or_slot in self.slots.values():
             # obj in use/wear slot
             for slot, objslot in slots.items():
                 if objslot is obj_or_slot:
-                    slots[slot] = None
+                    slots[slot] = NoneObject()
                     ret.append(objslot)
         elif obj_or_slot in slots[WieldLocation.BACKPACK]:
             # obj in backpack slot
@@ -439,11 +472,11 @@ class EquipmentHandler:
         """
         slots = self.slots
         lst = [
-            (slots[WieldLocation.WEAPON_HAND], WieldLocation.WEAPON_HAND),
-            (slots[WieldLocation.SHIELD_HAND], WieldLocation.SHIELD_HAND),
-            (slots[WieldLocation.TWO_HANDS], WieldLocation.TWO_HANDS),
-            (slots[WieldLocation.BODY], WieldLocation.BODY),
-            (slots[WieldLocation.HEAD], WieldLocation.HEAD),
+            (slots[WieldLocation.WEAPON_HAND] or NoneObject(), WieldLocation.WEAPON_HAND),
+            (slots[WieldLocation.SHIELD_HAND] or NoneObject(), WieldLocation.SHIELD_HAND),
+            (slots[WieldLocation.TWO_HANDS] or NoneObject(), WieldLocation.TWO_HANDS),
+            (slots[WieldLocation.BODY] or NoneObject(), WieldLocation.BODY),
+            (slots[WieldLocation.HEAD] or NoneObject(), WieldLocation.HEAD),
         ] + [(item, WieldLocation.BACKPACK) for item in slots[WieldLocation.BACKPACK]]
         if only_objs:
             # remove any None-results from empty slots

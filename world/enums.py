@@ -67,7 +67,7 @@ class PhysicalObjectMaterial(Enum):
     """ Physical object materials. """
 
     PLASTEEL = "plasteel"
-    CHITON = "chiton"
+    CHITIN = "chitin"
     STEEL = "steel"
     CARBON_FIBER = "carbon fiber"
     VIBRANIUM = "vibranium"
