@@ -61,7 +61,6 @@ class PrototypeManager:
         droppables = self._all_droppables
         excludes = make_iter(kwargs.get("exclude", []))
         must_include = make_iter(kwargs.get("must_include", []))
-        logger.log_err(f"droppables({args}, {kwargs})")
 
         droppables = [
             droppable
@@ -118,7 +117,6 @@ class PrototypeManager:
         rollables = self._all_rollables
         excludes = make_iter(kwargs.get("exclude", []))
         must_include = make_iter(kwargs.get("must_include", []))
-        logger.log_err(f"rollables({args}, {kwargs})")
 
         rollables = [
             rollable
@@ -194,19 +192,15 @@ class ItemSpawner:
         # pylint: disable=consider-iterating-dictionary
         while table_name in self.drop_tables.keys():
             table = self.drop_tables[table_name]
-            logger.log_err(f"table: {table}")
             maximum = table[-1][1]
 
             if cclass and table_name == "cclass":
                 table = copy.deepcopy(table)
-                maximum += 2
+                maximum += 5
                 table.append((cclass, maximum))
-                logger.log_err(f"table in cclass mod: {table}")
 
             roll = random.randint(1, maximum)
-            logger.log_err(f"rolled a {roll} from 1-{maximum}")
             idx = bisect_left(table, roll, key=lambda t: t[1])
-            logger.log_err(f"idx: {idx}")
             table_name = table[idx][0]
 
         return table_name
@@ -216,9 +210,10 @@ class ItemSpawner:
         roll a possible droppable from the drop table appropriate to the level.
         inject the character class so the roller can adjust the tables.
         """
+        cclass = kwargs.get("cclass", None)
         caller = kwargs.get("caller", None)
-        cclass = None
-        if caller and hasattr(caller, "cclass"):
+
+        if not cclass and caller and hasattr(caller, "cclass"):
             cclass = caller.cclass.key
         drop_table_tag = self.roll_drop_table(drop_table, cclass=cclass)
 
@@ -232,9 +227,8 @@ class ItemSpawner:
             )
         ])
         if not droppable_keys:
-            logger.log_err("rolled nothing to drop")
+            logger.log_info("rolled nothing to drop")
             return None
-        logger.log_err(f"droppable options: {droppable_keys}")
         droppable = spawner.flatten_prototype(
             spawner.search_prototype(
                 random.choice(droppable_keys),
@@ -260,12 +254,15 @@ class ItemSpawner:
 
         return material_rollable
 
-    def roll_tier(self, droppable):
+    def roll_tier(self, droppable, **kwargs):
         """ roll a tier appropriate for the item """
         tier = 0
+        tier_table = kwargs.get("tier_table", "tiers")
+        if not tier_table:
+            tier_table = "tiers"
 
         if "tier" in list_flatten(droppable["attrs"]):
-            tier = self.roll_drop_table("tiers")
+            tier = self.roll_drop_table(tier_table)
 
         return tier
 
@@ -281,7 +278,6 @@ class ItemSpawner:
             rollable["prototype_key"]
             for rollable in affix_rollables
         ])
-        logger.log_err(f"possible affixes: {options}")
         if not affix_rollables:
             logger.log_err(
                 f"Ran out of affixes for {droppable['prototype_key']},"
@@ -291,7 +287,6 @@ class ItemSpawner:
         affix = ""
         while affix not in options:
             affix = self.roll_drop_table("affixes")
-        logger.log_err(f"rolled affix: {affix}")
         return affix
 
     def roll_affixes(self, droppable, level, tier):
@@ -300,7 +295,6 @@ class ItemSpawner:
 
         if tier > 1:
             affix_count = random.randint(2*(tier-1)-1,2*(tier-1))
-            logger.log_err(f"rolled tier {tier}, rolling {affix_count} affixes...")
             for _ in range(affix_count):
                 affix = self.roll_affix(droppable, level, affixes)
                 if not affix:
@@ -309,53 +303,76 @@ class ItemSpawner:
 
         return affixes
 
+    def determine_item_level(self, *args):
+        """
+        determine the required_level of the item
+
+        it will be the max of the droppable and all relevant rollables
+        """
+        return max(
+            (
+                list(
+                    filter(
+                        lambda tup: "required_level" in tup, arg.get("attrs", {})
+                    )
+                )
+                or [('required_level', 1)]
+            )[0][1]
+            for arg in args
+        )
+
+    def build_prototype(self, droppable, material, **kwargs): #material, tier, item_level, affixes):
+        """ build the final prototype to spawn """
+        material_prototype_tup = (material["prototype_key"],) if material else ()
+        proto = {
+            "prototype_parent": (droppable["prototype_key"],) + material_prototype_tup,
+            "typeclass": droppable["typeclass"],
+        }
+
+        if kwargs.get("tier"):
+            proto = proto | {
+                "tier": kwargs["tier"],
+            }
+        if kwargs.get("item_level"):
+            proto = proto | {
+                "required_level": kwargs["item_level"],
+            }
+        if kwargs.get("affixes"):
+            proto = proto | {
+                "affixes": kwargs["affixes"],
+            }
+
+        return proto
+
     def spawn_item(self, level, *args, drop_table="generic", **kwargs):
         """ assemble and spawn the item """
         droppable = self.roll_droppable(level, *args, drop_table=drop_table, **kwargs)
         if not droppable:
-            return
+            return None
 
-        logger.log_err(f"rolled droppable: {droppable['prototype_key']}")
         material_rollable = self.roll_material(droppable, level)
-        logger.log_err(f"rolled material: {material_rollable.get('prototype_key'), ''}")
-        tier = self.roll_tier(droppable)
+        tier_table = kwargs.get("tier_table", None)
+        tier = self.roll_tier(droppable, tier_table=tier_table)
         affixes = self.roll_affixes(droppable, level, tier)
-
-        item_level = max([
-            (
-                list(
-                    filter(
-                        lambda tup: "required_level" in tup, droppable.get("attrs", {})
-                    )
-                )
-                or [('required_level', 1)]
-            )[0][1],
-            (
-                list(
-                    filter(
-                        lambda tup: "required_level" in tup, material_rollable.get("attrs", {})
-                    )
-                )
-                or [('required_level', 1)]
-            )[0][1],
-        ])
-
-        material_prototype_tup = (material_rollable["prototype_key"],) if material_rollable else ()
-        new_prot = {
-            "prototype_parent": (droppable["prototype_key"],) + material_prototype_tup,
-            "typeclass": droppable["typeclass"],
-            "tier": tier,
-            "required_level": item_level,
-            "affixes": affixes,
-        }
-
-        logger.log_err(f"new_prot: {new_prot}")
-        logger.log_err(f"new_prot_flattened: {spawner.flatten_prototype(new_prot)}")
+        item_level = self.determine_item_level(droppable, material_rollable)
+        new_prot = self.build_prototype(
+            droppable,
+            material_rollable,
+            tier=tier,
+            item_level=item_level,
+            affixes=affixes
+        )
 
         caller = kwargs.get("caller", None)
+        location = kwargs.get("location", None)
         obj = spawner.spawn(spawner.flatten_prototype(new_prot), caller=caller)[0]
-        obj.location = caller.location
+
+        if not location:
+            location = caller.location
+
+        obj.location = location
         obj.location.msg_contents(f"{obj.get_numbered_name(1, caller)[0]} dropped.")
+        return obj
 
 # make a singleton so we benefit from the cached drop_tables and prototypes
 item_spawner = ItemSpawner()

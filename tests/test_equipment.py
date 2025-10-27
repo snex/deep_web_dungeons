@@ -32,9 +32,9 @@ class TestEquipment(AinneveTestMixin, EvenniaTest):
     def test_add__remove(self):
         """ Test add and remove. """
         self.char1.equipment.add(self.helmet)
-        self.assertEqual(self.char1.equipment.slots[WieldLocation.BACKPACK], [self.helmet])
+        self.assertEqual(self.char1.equipment.backpack, [self.helmet])
         self.char1.equipment.remove(self.helmet)
-        self.assertEqual(self.char1.equipment.slots[WieldLocation.BACKPACK], [])
+        self.assertEqual(self.char1.equipment.backpack, [])
 
     def test_move__get_current_slot(self):
         """ Test move and get_current_slot. """
@@ -151,9 +151,9 @@ Head: |nhelmet|n
 """.strip()
         )
 
-    def test_sorted_backpack(self):
-        """ test that sorted_backpack returns a sorted dict of the backpack contents """
-        self.assertEqual({}, self.char1.equipment.sorted_backpack())
+    def test_organized_backpack(self):
+        """ test that organized_backpack returns a sorted dict of the backpack contents """
+        self.assertEqual({}, self.char1.equipment.organized_backpack())
 
         expected = {
             "backpack item": {
@@ -177,7 +177,7 @@ Head: |nhelmet|n
         self.char1.equipment.add(self.item2)
         self.char1.equipment.add(self.item)
         self.char1.equipment.add(item_copy)
-        self.assertEqual(expected, self.char1.equipment.sorted_backpack())
+        self.assertEqual(expected, self.char1.equipment.organized_backpack())
 
     def test_paged_backpack(self):
         """ test the paged_backpack function """
@@ -256,7 +256,7 @@ Head: |nhelmet|n
         """ Test that adding gear works. """
         self.char1.equipment.add(self.weapon)
         self.assertEqual(self.char1.equipment.slots[WieldLocation.WEAPON_HAND], NoneObject())
-        self.assertTrue(self.weapon in self.char1.equipment.slots[WieldLocation.BACKPACK])
+        self.assertTrue(self.weapon in self.char1.equipment.backpack)
 
     def test_two_handed_exclusive(self):
         """ Two-handed weapons can't be used together with weapon+shield """

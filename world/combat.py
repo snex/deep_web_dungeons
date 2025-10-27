@@ -25,7 +25,7 @@ class AttackRules:
 
     _RULES = {
         "_not_in_combat": "You are not in combat.",
-        "_target_not_in_combat": "{target.get_display_name(attacker)} is not in combat with you.",
+        "_target_not_in_combat": "{target} is not in combat with you.",
         "_no_pvp_zone": "You can't attack another player here.",
         "_player_on_cooldown": "You can't attack for"
                                "{attacker.cooldowns.time_left('attack', use_int=True)}"

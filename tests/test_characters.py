@@ -5,6 +5,7 @@ Test characters.
 
 from unittest.mock import patch
 
+from typeclasses.npcs import ShopKeeper
 from world.characters.classes import CHARACTER_CLASSES
 from world.characters.races import RACES
 
@@ -161,3 +162,17 @@ Left Hand: |nshield|n
 Body: |narmor|n
 Head: |nhelmet|n
 """)
+
+    def test_clear_buyable_gear(self):
+        """ test that we can clear out the buyable_gear hash """
+        shopkeeper = ShopKeeper.create(
+            key="shopkeeper",
+            menudata="world.npcs.your_mom"
+        )[0]
+        self.char1.buyable_gear = {shopkeeper: ["a", "b"]}
+        self.char1.clear_buyable_gear([shopkeeper])
+        self.assertEqual(self.char1.buyable_gear, {})
+        self.char1.buyable_gear = {shopkeeper: ["a", "b"]}
+        shopkeeper.at_talk(self.char1, "node_start")
+        self.char1.clear_buyable_gear([shopkeeper])
+        self.assertEqual(self.char1.buyable_gear, {shopkeeper: ["a", "b"]})

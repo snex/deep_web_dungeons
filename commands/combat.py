@@ -70,7 +70,7 @@ class CmdInitiateCombat(CombatCommand):
         combat = CombatHandler.get_or_create(caller, target)
         combat_range = combat.get_range(caller, target)
         caller.msg(
-            f"You prepare for combat! {target.get_display_name(caller)}"
+            f"You prepare for combat! {target}"
             f" is at {combat_range.name.lower()} range."
         )
 
@@ -104,12 +104,12 @@ class CmdAdvance(CombatCommand):
                 mapping={"attacker": caller, "target": target},
             )
             caller.msg(
-                f"You advance towards {target.get_display_name(caller)}"
+                f"You advance towards {target}"
                 f" and are now at {combat_range.lower()} range."
             )
         else:
             caller.msg(
-                f"You can't advance any further towards {target.get_display_name(caller)}."
+                f"You can't advance any further towards {target}."
             )
 
         # TODO: trigger combat prompt
@@ -141,12 +141,12 @@ class CmdRetreat(CombatCommand):
                 mapping={"attacker": caller, "target": target},
             )
             caller.msg(
-                f"You retreat from {target.get_display_name(caller)}"
+                f"You retreat from {target}"
                 f" and are now at {combat_range.lower()} range."
             )
         else:
             caller.msg(
-                f"You can't retreat any further from {target.get_display_name(caller)}."
+                f"You can't retreat any further from {target}."
             )
 
         # TODO: trigger combat prompt
@@ -181,7 +181,7 @@ class CmdHit(CombatCommand):
             caller.msg("You can't fight that.")
             return
         if not hittable:
-            caller.msg(f"{target.get_display_name(caller)} is too far away.")
+            caller.msg(f"{target} is too far away.")
             return
 
         combat.at_melee_attack(caller, target)

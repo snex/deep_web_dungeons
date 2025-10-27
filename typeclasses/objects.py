@@ -6,13 +6,15 @@ The Object is the base class for things in the game world.
 Note that the default Character, Room and Exit do not inherit from Object.
 """
 import bisect
+import time
+
 import inflect
 
 from evennia import AttributeProperty
 from evennia.objects.objects import DefaultObject
 from evennia.prototypes.spawner import spawn
 from evennia.utils import ansi, logger
-from evennia.utils.utils import compress_whitespace, make_iter
+from evennia.utils.utils import compress_whitespace, inherits_from, make_iter
 
 from world import quantum_lattices
 from world.affixes import AFFIXES
@@ -27,7 +29,7 @@ from world.enums import (
     QuantumLatticeType,
     WieldLocation,
 )
-from world.utils import get_obj_stats, rainbow
+from world.utils import get_obj_stats
 
 _INFLECT = inflect.engine()
 
@@ -47,6 +49,9 @@ class NoneObject:
     def __bool__(self):
         return False
 
+    def __str__(self):
+        return "None"
+
     def get_display_name(self, *args, **kwargs):
         """ Return 'None' no matter what. """
         return "None"
@@ -57,6 +62,7 @@ class Object(DefaultObject):
 
     """
 
+    created_at = AttributeProperty(default=0)
     # inventory management
     inventory_use_slot = AttributeProperty(WieldLocation.BACKPACK)
     # how many inventory slots it uses (can be a fraction)
@@ -69,11 +75,21 @@ class Object(DefaultObject):
     # can also be an iterable, for adding multiple obj-type tags
     obj_type = ObjType.GEAR
 
+    def __str__(self):
+        return self.get_display_name()
+
     def at_object_creation(self):
+        self.created_at = int(time.time())
         for obj_type in make_iter(self.obj_type):
             self.tags.add(obj_type.value, category="obj_type")
         self.locks.add("view: not_in_foreign_backpack()")
         self.locks.add("wear_wield: character_can_equip_item()")
+
+    def at_object_delete(self):
+        if hasattr(self.location, "equipment"):
+            self.location.equipment.remove(self)
+
+        return True
 
     def at_pre_use(self, *args, **kwargs):
         """
@@ -227,38 +243,30 @@ class QuantumLatticeObject(Object):
     _QL_TIERS = {
         QuantumLatticeType.DUST_SHARD: {
             "prototype": item_prototypes.QL_DUST_SHARD,
-            "color": "|x",
         },
         QuantumLatticeType.STATIC_BLOOM: {
             "prototype": item_prototypes.QL_STATIC_BLOOM,
-            "color": "|c",
         },
         QuantumLatticeType.ECHO_STONE: {
             "prototype": item_prototypes.QL_ECHO_STONE,
-            "color": "|G",
         },
         QuantumLatticeType.RESONANCE_CRYSTAL: {
             "prototype": item_prototypes.QL_RESONANCE_CRYSTAL,
-            "color": "|y",
         },
         QuantumLatticeType.SINGULARITY_SHARD: {
             "prototype": item_prototypes.QL_SINGULARITY_SHARD,
-            "color": "|[x|X",
         },
         QuantumLatticeType.PHASE_PEARL: {
             "prototype": item_prototypes.QL_PHASE_PEARL,
-            "color": "|530",
         },
         QuantumLatticeType.VOID_SPARK: {
             "prototype": item_prototypes.QL_VOID_SPARK,
-            "color": "|M",
         },
         QuantumLatticeType.CHROMATIC_HEART: {
             "prototype": item_prototypes.QL_CHROMATIC_HEART,
         },
         QuantumLatticeType.NEXUS_DIAMOND: {
             "prototype": item_prototypes.QL_NEXUS_DIAMOND,
-            "color": "|[w|x",
         }
     }
 
@@ -267,13 +275,13 @@ class QuantumLatticeObject(Object):
         caller = kwargs["caller"]
 
         if not item:
-            caller.msg(f"What do you want to use {self.get_display_name()} on?")
+            caller.msg(f"What do you want to use {self} on?")
             return False
 
         try:
-            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self, item)
-            if not ql.can_use():
-                caller.msg(f"You can't use {self.get_display_name()} on {item.get_display_name()}")
+            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self)
+            if not ql.can_use(item):
+                caller.msg(f"You can't use {self} on {item}")
                 return False
             return True
         except AttributeError:
@@ -283,12 +291,12 @@ class QuantumLatticeObject(Object):
     def _apply_color(self, custom_text=None):
         """ Apply color based on QuantumLatticeType. """
 
-        if self.ql_type == QuantumLatticeType.CHROMATIC_HEART:
-            return rainbow(custom_text or self.name)
-
-        color = self._QL_TIERS[self.ql_type]["color"]
-
-        return compress_whitespace(f"{color}{custom_text or self.name}|n")
+        try:
+            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self)
+            return ql.get_display_name(custom_text)
+        except AttributeError:
+            logger.log_err(f"Tried to use a QuantumLatticeObject with unknown key: {self.key}")
+            return ""
 
     def combine(self, owner):
         """ Combines 3 of a type of QL into the next level of QL. """
@@ -296,7 +304,7 @@ class QuantumLatticeObject(Object):
         next_tier = self._get_next_tier()
 
         if not next_tier:
-            return f"{self.get_display_name()} cannot be combined."
+            return f"{self} cannot be combined."
 
         candidates = owner.search(
             self.key,
@@ -310,7 +318,6 @@ class QuantumLatticeObject(Object):
             return f"You need 3 {old_ql_display_name} to combine."
 
         for old_ql in candidates:
-            owner.equipment.remove(old_ql)
             old_ql.delete()
 
         new_ql = spawn(
@@ -319,25 +326,27 @@ class QuantumLatticeObject(Object):
             }
         )[0]
         owner.equipment.move(new_ql)
-        return f"You combine 3 {old_ql_display_name} into {new_ql.get_display_name()}."
+        return f"You combine 3 {old_ql_display_name} into {new_ql}."
 
-    def use(self, item, caller):
+    def use(self, *args, **kwargs):
         """
         use the QL by calling a specific class per QL
 
         at_post_use should be called inside the class so it can pass the msg and perform any
         other side effects
         """
+        item = args[0]
+        caller = kwargs["caller"]
+
         try:
-            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self, item)
-            ql.use(caller)
+            ql = getattr(quantum_lattices, self.key.title().replace(" ", ""))(self)
+            ql.use(caller, item)
         except AttributeError:
             logger.log_err(f"Tried to use a QuantumLatticeObject with unknown key: {self.key}")
 
     def at_post_use(self, caller, msg):
         """ call after using a QL. message the caller what it did and delete it """
         caller.msg(msg)
-        caller.equipment.remove(self)
         self.delete()
 
     def _get_next_tier(self):
@@ -413,6 +422,41 @@ class ConsumableObject(Object):
             "Uses": self.uses
         }
 
+class ScrapObject(Object):
+    """ Scrap is used to repear equipment. """
+
+    obj_type = ObjType.CONSUMABLE
+    size = AttributeProperty(default=0.01)
+    repair_amount = AttributeProperty(default=10)
+
+    def at_pre_use(self, *args, **kwargs):
+        """ test if scrap can be used on the item """
+        item = args[0]
+        caller = kwargs["caller"]
+
+        if not item:
+            caller.msg(f"What do you want to use {self} on?")
+            return False
+
+        if not inherits_from(item, EquipmentObject):
+            caller.msg(f"You can't use {self} on {item}.")
+            return False
+
+        if item.quality == 100:
+            caller.msg(f"{item} is already in {item.damage_level} condition.")
+            return False
+
+        return True
+
+    def use(self, *args, **kwargs):
+        """ use the scrap, repairing some gear """
+        item = args[0]
+        caller = kwargs["caller"]
+
+        caller.msg(f"You use {self} to repair {item}")
+        item.repair(self.repair_amount)
+        self.delete()
+
 class ConsumableHealingObject(ConsumableObject):
     """
     Item that heals when used.
@@ -435,6 +479,7 @@ class EquipmentObject(Object):
     required_level = AttributeProperty(default=1)
     quality = AttributeProperty(default=100)
     affixes = AttributeProperty(default=[])
+    scrap_base_value = AttributeProperty(default=1)
 
     _TIER_DISPLAY_COLORS = [
         "|n", # Tier 0 items are not equippable and display in normal text
@@ -477,7 +522,9 @@ class EquipmentObject(Object):
             return f"{color}{custom_text}|n"
 
         if not material:
-            logger.log_err("Somehow we got an EquipmentObject with no material!")
+            logger.log_err(
+                f"Somehow we got an EquipmentObject with no material! {self.key}({self.dbid})"
+            )
 
             return f"{color}{display_name}|n"
 
@@ -503,6 +550,40 @@ class EquipmentObject(Object):
         percent = max(0, min(100, 100 * (self.quality / 100)))
 
         return damage_levels[bisect.bisect_left(damage_levels, (percent,))][1]
+
+    @property
+    def scrap_value(self):
+        """ Amount of scrap vendors will give you for this item """
+        return self.tier * self.scrap_base_value + int(self.required_level / 10)
+
+    @property
+    def vendor_price(self):
+        """ Price vendors charge to sell this item """
+        price_l = 2 * self.scrap_value * ["scrap"]
+
+        match self.tier:
+            case 2:
+                price_l.extend(2 * ["resonance crystal"])
+            case 3:
+                price_l.extend(2 * ["resonance crystal", "phase pearl"])
+            case 4:
+                price_l.extend(2 * ["resonance crystal", "phase pearl", "chromatic heart"])
+
+        price_l.extend(len(self.affixes) * ["echo stone"])
+
+        price_d = {}
+        for currency in sorted(price_l):
+            if not price_d.get(currency, None):
+                price_d[currency] = {"count": 0}
+            price_d[currency]["count"] += 1
+            price_d[currency]["ql"] = quantum_lattices.QuantumLattice.from_name(currency)
+
+        return price_d
+
+    def repair(self, amount):
+        """ repair the equipment, up to a max of 100 """
+        self.quality = min(100, self.quality + amount)
+        self.save()
 
     def get_item_type_stats(self, looker=None):
         """
@@ -563,9 +644,9 @@ class WeaponObject(EquipmentObject):
             Parry (whether this weapon can parry attacks)
         """
         return {
-            "Range": self.attack_range,
-            "Att. Type": self.attack_type,
-            "Def. Type": self.defense_type,
+            "Range": self.attack_range.value,
+            "Att. Type": self.attack_type.value,
+            "Def. Type": self.defense_type.value,
             "Cooldown": f"{self.cooldown}s",
             "Parry": "|gYes|n" if self.can_parry() else "|rNo|n",
         } | super().get_item_type_stats(looker)

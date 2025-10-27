@@ -40,3 +40,31 @@ class GlobalRecoveryScript(Script):
         )
         for character in characters:
             character.at_recovery()
+
+class VendorRestockScript(Script):
+    """
+    Script to clean out stale vendor inventory
+
+    Should run every 60 mins
+    """
+
+    def at_stop(self, **kwargs):
+        """ this should never stop, otherwise the NPC vendors will get clogged with junk """
+        self.start()
+
+    def at_repeat(self, **kwargs):
+        """
+        cycle through each character and wipe out their buyable gear if they are not currently
+            shopping
+
+        then cycle through each shopkeeper and delete old gear in their inventory
+            (created at > 1 day ago)
+        """
+        vendors = list(search_typeclass("typeclasses.npcs.ShopKeeper"))
+        characters = search_typeclass("typeclasses.characters.Character")
+
+        for character in characters:
+            character.clear_buyable_gear(vendors)
+
+        for vendor in vendors:
+            vendor.clean_old_inventory()

@@ -17,11 +17,19 @@ DROP_TABLES = {
         ("consumable",                   4),
         ("equipment",                    4),
     ],
+    "gear_vendor": [
+        ("equipment",                    1),
+    ],
     "tiers": [
         (4,                              1),
         (3,                              5),
         (2,                             20),
         (1,                            100),
+    ],
+    "vendor_tiers": [
+        (3,                             20),
+        (2,                            100),
+        (1,                            100)
     ],
     "affixes": [
         ("prefix_caustic",               1),

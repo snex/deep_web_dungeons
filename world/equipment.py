@@ -6,14 +6,167 @@ Knave has a system of Slots for its inventory.
 import itertools
 
 from evennia import search_object, create_object
-from evennia.utils import ansi
 from evennia.utils.utils import inherits_from
 from typeclasses.objects import Object, NoneObject, WeaponBareHands
 
 from .enums import Ability, WieldLocation
+from .utils import obj_order
 
 class EquipmentError(TypeError):
     """ Error class to categorize errors thrown from here. """
+
+class BackpackHandler:
+    """ class to handle all backpack operations """
+    def __init__(self, backpack, equipment_handler):
+        self._backpack = backpack
+        self.eq = equipment_handler
+
+    def __contains__(self, item):
+        return item in self._backpack
+
+    def __iter__(self):
+        return iter(self._backpack)
+
+    def __eq__(self, other):
+        return self._backpack == other
+
+    def append(self, item):
+        """ add item to backpack """
+        self._backpack.append(item)
+
+    def remove(self, item):
+        """ remove item from backpack """
+        self._backpack.remove(item)
+
+    @property
+    def usage(self):
+        """ return the weight of all items in the backpack """
+        return sum(getattr(obj, "size", 0) or 0 for obj in self._backpack)
+
+    def sorted_backpack(self, typeclass=Object):
+        """
+        returns contents of the backpack sorted by key, inheriting from typeclass, so they can be
+          presented for sale
+
+        contents is an array of the objects themselves
+        """
+        return [
+            item
+            for item in sorted(self._backpack, key=obj_order)
+            if inherits_from(item, typeclass)
+        ]
+
+    def organized_backpack(self):
+        """
+        return contents of the backpack sorted by key and collated by quantity and weight
+
+        contents is a dict in the following format:
+            {
+                "item_display_name": {
+                    "capacity": TOTAL_CAPACITY_OF_THIS_ITEM,
+                    "quantity": TOTAL_QUANTITY_OF_THIS_ITEM,
+                }
+            }
+        """
+        backpack = self.sorted_backpack()
+        if not backpack:
+            return {}
+
+        ret = {}
+
+        for item in backpack:
+            k = str(item)
+
+            if k in ret:
+                ret[k]["capacity"] += item.size
+                ret[k]["quantity"] += 1
+            else:
+                ret[k] = {
+                    "capacity": item.size,
+                    "quantity": 1,
+                }
+
+        return ret
+
+    def paged_backpack(self, page=1, per_page=24):
+        """
+        get the `page` page of the sorted backpack contents,
+            with a maximum of `per_page` items per page
+
+        Args: page - which page of the backpack to return. if NaN or < 1, return page 1
+                     if > total pages, return the last page
+              per_page - number of items per page. defaults to 24 to fit the inventory command
+
+        Returns a tuple containing the page, the total pages, and an array of tuples with the items
+        """
+
+        try:
+            per_page = int(per_page)
+        except ValueError:
+            per_page = 24
+
+        backpack = self.organized_backpack()
+        total_pages = max(1, (len(backpack.keys()) -1) // per_page + 1)
+
+        try:
+            page = min(total_pages, max(1, int(page)))
+        except ValueError:
+            page = 1
+
+        start_idx = (page - 1) * per_page
+        return (
+            page,
+            total_pages,
+            list(itertools.islice(backpack.items(), start_idx, start_idx + per_page))
+        )
+
+    def get_wieldable_objects_from_backpack(self):
+        """
+        Get all wieldable weapons (or spell runes) from backpack. This is useful in order to
+        have a list to select from when swapping your wielded loadout.
+
+        Returns:
+            list: A list of objects with a suitable `inventory_use_slot`. We don't check
+            quality, so this may include broken items (we may want to visually show them
+            in the list after all).
+
+        """
+        return [
+            obj
+            for obj in self._backpack
+            if obj.inventory_use_slot
+            in (WieldLocation.WEAPON_HAND, WieldLocation.TWO_HANDS, WieldLocation.SHIELD_HAND)
+        ]
+
+    def get_wearable_objects_from_backpack(self):
+        """
+        Get all wearable items (armor or helmets) from backpack. This is useful in order to
+        have a list to select from when swapping your worn loadout.
+
+        Returns:
+            list: A list of objects with a suitable `inventory_use_slot`. We don't check
+            quality, so this may include broken items (we may want to visually show them
+            in the list after all).
+
+        """
+        return [
+            obj
+            for obj in self._backpack
+            if obj.inventory_use_slot in (WieldLocation.BODY, WieldLocation.HEAD)
+        ]
+
+    def get_usable_objects_from_backpack(self):
+        """
+        Get all 'usable' items (like potions) from backpack. This is useful for getting a
+        list to select from. Requires a character to be sent in as an arg because objects
+        are usable FOR characters, not just in general.
+
+        Returns:
+            list: A list of objects that are usable.
+
+        """
+        character = self.eq.obj
+        return [obj for obj in self._backpack if obj.at_pre_use(character)]
 
 class EquipmentHandler:
     """
@@ -33,6 +186,20 @@ class EquipmentHandler:
     def __init__(self, obj):
         self.obj = obj
         self._load()
+        self._backpack = BackpackHandler(self.slots[WieldLocation.BACKPACK], self)
+        self.backpack_methods = [f for f in dir(BackpackHandler) if not f.startswith('_')]
+
+    def __getattr__(self, func):
+        def method(*args, **kwargs):
+            if func in self.backpack_methods:
+                return getattr(self._backpack, func)(*args, **kwargs)
+            raise AttributeError
+        return method
+
+    @property
+    def backpack(self):
+        """ return the backpack contents """
+        return self._backpack
 
     def _empty_slots(self):
         return {
@@ -74,10 +241,7 @@ class EquipmentHandler:
             for slot, slotobj in slots.items()
             if slot is not WieldLocation.BACKPACK
         )
-        backpack_usage = sum(
-            getattr(slotobj, "size", 0) or 0 for slotobj in slots[WieldLocation.BACKPACK]
-        )
-        return wield_usage + backpack_usage
+        return wield_usage + self.backpack.usage
 
     @property
     def max_slots(self):
@@ -208,83 +372,15 @@ class EquipmentHandler:
 
         l_hand = "None"
         if self.weapon.inventory_use_slot == WieldLocation.TWO_HANDS:
-            l_hand = self.weapon.get_display_name()
+            l_hand = self.weapon
         if self.shield:
-            l_hand = self.shield.get_display_name()
+            l_hand = self.shield
         return f"""
-Right Hand: {self.weapon.get_display_name()}
+Right Hand: {self.weapon}
 Left Hand: {l_hand}
-Body: {self.armor_item.get_display_name()}
-Head: {self.helmet.get_display_name()}
+Body: {self.armor_item}
+Head: {self.helmet}
 """.strip()
-
-    def _obj_order(self, obj):
-        """ Use the object's uncolored display_name to sort it in the backpack display. """
-        return ansi.ANSIString(obj.get_display_name())
-
-    def sorted_backpack(self):
-        """
-        return contents of the backpack sorted by key
-
-        contents is a dict in the following format:
-            {
-                "item.get_display_name()": {
-                    "capacity": TOTAL_CAPACITY_OF_THIS_ITEM,
-                    "quantity": TOTAL_QUANTITY_OF_THIS_ITEM,
-                }
-            }
-        """
-        backpack = sorted(self.slots[WieldLocation.BACKPACK], key=self._obj_order)
-        if not backpack:
-            return {}
-
-        ret = {}
-
-        for item in backpack:
-            k = item.get_display_name()
-
-            if k in ret:
-                ret[k]["capacity"] += item.size
-                ret[k]["quantity"] += 1
-            else:
-                ret[k] = {
-                    "capacity": item.size,
-                    "quantity": 1,
-                }
-
-        return ret
-
-    def paged_backpack(self, page=1, per_page=24):
-        """
-        get the `page` page of the sorted backpack contents,
-            with a maximum of `per_page` items per page
-
-        Args: page - which page of the backpack to return. if NaN or < 1, return page 1
-                     if > total pages, return the last page
-              per_page - number of items per page. defaults to 24 to fit the inventory command
-
-        Returns a tuple containing the page, the total pages, and an array of tuples with the items
-        """
-
-        try:
-            per_page = int(per_page)
-        except ValueError:
-            per_page = 24
-
-        backpack = self.sorted_backpack()
-        total_pages = max(1, (len(backpack.keys()) -1) // per_page + 1)
-
-        try:
-            page = min(total_pages, max(1, int(page)))
-        except ValueError:
-            page = 1
-
-        start_idx = (page - 1) * per_page
-        return (
-            page,
-            total_pages,
-            list(itertools.islice(backpack.items(), start_idx, start_idx + per_page))
-        )
 
     def display_slot_usage(self):
         """
@@ -345,7 +441,7 @@ Head: {self.helmet.get_display_name()}
         for to_backpack_obj in to_backpack:
             # put stuff in backpack
             if to_backpack_obj:
-                slots[WieldLocation.BACKPACK].append(to_backpack_obj)
+                self.backpack.append(to_backpack_obj)
 
         # store new state
         self._save()
@@ -364,7 +460,7 @@ Head: {self.helmet.get_display_name()}
         """
         # check if we have room
         self.validate_slot_usage(obj)
-        self.slots[WieldLocation.BACKPACK].append(obj)
+        self.backpack.append(obj)
         self._save()
 
     def remove(self, obj_or_slot):
@@ -399,63 +495,16 @@ Head: {self.helmet.get_display_name()}
                 if objslot is obj_or_slot:
                     slots[slot] = NoneObject()
                     ret.append(objslot)
-        elif obj_or_slot in slots[WieldLocation.BACKPACK]:
+        elif obj_or_slot in self.backpack:
             # obj in backpack slot
             try:
-                slots[WieldLocation.BACKPACK].remove(obj_or_slot)
+                self.backpack.remove(obj_or_slot)
                 ret.append(obj_or_slot)
             except ValueError:
                 pass
         if ret:
             self._save()
         return ret
-
-    def get_wieldable_objects_from_backpack(self):
-        """
-        Get all wieldable weapons (or spell runes) from backpack. This is useful in order to
-        have a list to select from when swapping your wielded loadout.
-
-        Returns:
-            list: A list of objects with a suitable `inventory_use_slot`. We don't check
-            quality, so this may include broken items (we may want to visually show them
-            in the list after all).
-
-        """
-        return [
-            obj
-            for obj in self.slots[WieldLocation.BACKPACK]
-            if obj.inventory_use_slot
-            in (WieldLocation.WEAPON_HAND, WieldLocation.TWO_HANDS, WieldLocation.SHIELD_HAND)
-        ]
-
-    def get_wearable_objects_from_backpack(self):
-        """
-        Get all wearable items (armor or helmets) from backpack. This is useful in order to
-        have a list to select from when swapping your worn loadout.
-
-        Returns:
-            list: A list of objects with a suitable `inventory_use_slot`. We don't check
-            quality, so this may include broken items (we may want to visually show them
-            in the list after all).
-
-        """
-        return [
-            obj
-            for obj in self.slots[WieldLocation.BACKPACK]
-            if obj.inventory_use_slot in (WieldLocation.BODY, WieldLocation.HEAD)
-        ]
-
-    def get_usable_objects_from_backpack(self):
-        """
-        Get all 'usable' items (like potions) from backpack. This is useful for getting a
-        list to select from.
-
-        Returns:
-            list: A list of objects that are usable.
-
-        """
-        character = self.obj
-        return [obj for obj in self.slots[WieldLocation.BACKPACK] if obj.at_pre_use(character)]
 
     def all(self, only_objs=False):
         """
@@ -477,7 +526,7 @@ Head: {self.helmet.get_display_name()}
             (slots[WieldLocation.TWO_HANDS] or NoneObject(), WieldLocation.TWO_HANDS),
             (slots[WieldLocation.BODY] or NoneObject(), WieldLocation.BODY),
             (slots[WieldLocation.HEAD] or NoneObject(), WieldLocation.HEAD),
-        ] + [(item, WieldLocation.BACKPACK) for item in slots[WieldLocation.BACKPACK]]
+        ] + [(item, WieldLocation.BACKPACK) for item in self.backpack]
         if only_objs:
             # remove any None-results from empty slots
             return [tup[0] for tup in lst if tup[0]]
