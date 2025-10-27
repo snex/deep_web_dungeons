@@ -31,6 +31,27 @@ CMDSET_SESSION = "commands.default_cmdsets.AccountCmdSet"
 FILE_HELP_ENTRY_MODULES = [ 'world.help.combat_help' ]
 BASE_CHARACTER_TYPECLASS = "typeclasses.characters.Character"
 
+GLOBAL_SCRIPTS = {
+    "global_recovery": {
+        "typeclass": "typeclasses.scripts.GlobalRecoveryScript",
+        "key": "Recovery",
+        "repeats": -1,
+        "interval": 6,
+        "autostart": True,
+        "persistent": True,
+        "desc": "Global Character Recovery Script",
+    },
+    "vendor_restock": {
+        "typeclass": "typeclasses.scripts.VendorRestockScript",
+        "key": "Restock",
+        "repeats": -1,
+        "interval": 60 * 60,
+        "autostart": True,
+        "persistent": True,
+        "desc": "Global Vendor Restock Script",
+    },
+}
+
 
 ######################################################################
 # XYZ Grid install settings

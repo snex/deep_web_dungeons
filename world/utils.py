@@ -5,8 +5,17 @@ Various utilities.
 
 import itertools
 
-from evennia.utils import evform, evtable
+import inflect
+
+from evennia.utils import ansi, evform, evtable
+
 from world.enums import WieldLocation
+
+_INFLECT = inflect.engine()
+
+def obj_order(obj):
+    """ display_name to sort it. """
+    return str(obj)
 
 def get_obj_stats(obj, owner=None):
     """
@@ -51,7 +60,7 @@ def get_obj_stats(obj, owner=None):
         item_type_stats.add_row(f"|c{stat}|n: ", value)
 
     header = f"""
-{obj.get_display_name()}{carried}
+{obj}{carried}
 {obj.db.desc}
 """.strip()
 
@@ -66,6 +75,56 @@ def get_obj_stats(obj, owner=None):
     )
 
     return str(obj_stats)
+
+def get_numbered_name(name, count, **kwargs):
+    """
+    Return the numbered (singular, plural) forms of passed in name.
+    Also the singular display version, such as 'an apple', 'a tree' is determined from this method.
+
+    Args:
+        name (str): The name to inflect
+        count (int): Number of objects of this type
+
+    Keyword Args:
+        return_string (bool): If `True`, return only the singular form if count is 0,1 or
+            the plural form otherwise. If `False` (default), return both forms as a tuple.
+        no_article (bool): If `True`, do not return an article if `count` is 1.
+
+    Returns:
+        tuple: This is a tuple `(str, str)` with the singular and plural forms of the name
+        including the count.
+
+    Examples:
+    ::
+
+        get_numbered_name("foo", 3, looker)
+              -> ("a foo", "three foos")
+        get_numbered_name("Foobert", 1, return_string=True)
+              -> "a Foobert"
+        get_numbered_name("Foobert", 1, return_string=True, no_article=True)
+              -> "Foobert"
+    """
+    raw_name = ansi.ANSIString(name)  # this is needed to allow inflection of colored names
+    try:
+        plural = _INFLECT.plural(raw_name, count)
+        plural = f"{_INFLECT.number_to_words(count, threshold=12)} {plural}".strip()
+    except IndexError:
+        # this is raised by inflect if the input is not a proper noun
+        plural = raw_name
+    singular = _INFLECT.an(raw_name).strip()
+
+    if kwargs.get("no_article") and count == 1:
+        if kwargs.get("return_string"):
+            return raw_name
+        return raw_name, raw_name
+
+    if kwargs.get("return_string"):
+        if count == 1:
+            return singular
+
+        return plural
+
+    return singular, plural
 
 def each_cons(iterable, n):
     """

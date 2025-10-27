@@ -950,6 +950,16 @@ BASE_CONSUMABLE = {
     "inventory_use_slot": WieldLocation.BACKPACK
 }
 
+SCRAP = {
+    "prototype_key": "scrap",
+    "key": "scrap",
+    "typeclass": "typeclasses.objects.ScrapObject",
+    "inventory_use_slot": WieldLocation.BACKPACK,
+    "desc": "Scrap can be used to repair your equipment.",
+    "uses": 1,
+    "size": 0.01,
+}
+
 BASE_HEALING_CONSUMABLE = {
     "prototype_parent": "base_consumable",
     "prototype_key": "base_healing_consumable",

@@ -2,11 +2,12 @@
 Typeclasses defining NPCs. This includes both friends and enemies, only separated by their AI.
 
 """
-from random import choice, random, randrange
+import random
+import time
 
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.evmenu import EvMenu
-from evennia.utils.utils import inherits_from, make_iter, repeat, unrepeat
+from evennia.utils.utils import inherits_from, repeat, unrepeat
 from world.common.dialog.insults import Insult
 from world.enums import Allegiance, CardinalDirections
 from .characters import BaseCharacter, Character
@@ -41,7 +42,7 @@ class NPC(BaseCharacter):
         ]
 
         if candidates:
-            wander_dir = choice(candidates)
+            wander_dir = random.choice(candidates)
             self.execute_cmd(wander_dir)
         else:
             self.location.msg_contents(
@@ -55,10 +56,12 @@ class WanderingNPC(NPC):
     """
 
     wander_timer = AttributeProperty(default=None, autocreate=False)
-    wander_rate = AttributeProperty(randrange(30, 120), autocreate=False)
-    wander_chance = AttributeProperty(randrange(300, 700) / 1000, autocreate=False)
+    wander_rate = AttributeProperty(default=60, autocreate=False)
+    wander_chance = AttributeProperty(default=0.5, autocreate=False)
 
     def at_object_creation(self):
+        self.wander_rate = random.randrange(30, 120)
+        self.wander_chance = random.randrange(300, 700) / 1000
         self.wander_timer = repeat(self.wander_rate, self.wander)
 
     def at_object_delete(self):
@@ -68,7 +71,7 @@ class WanderingNPC(NPC):
 
     def wander(self):
         """ Roll to see if the NPC should wander, then wander if so. """
-        if random() < self.wander_chance:
+        if random.random() < self.wander_chance:
             self._do_wander(CardinalDirections)
 
 class InsultNPC(NPC):
@@ -77,10 +80,12 @@ class InsultNPC(NPC):
     """
 
     insult_timer = AttributeProperty(default=None, autocreate=False)
-    insult_rate = AttributeProperty(randrange(30, 120), autocreate=False)
-    insult_chance = AttributeProperty(randrange(300, 700) / 1000, autocreate=False)
+    insult_rate = AttributeProperty(default=60, autocreate=False)
+    insult_chance = AttributeProperty(default=0.5, autocreate=False)
 
     def at_object_creation(self):
+        self.insult_rate = random.randrange(30, 120)
+        self.insult_chance = random.randrange(300, 700) / 1000
         self.insult_timer = repeat(self.insult_rate, self.insult)
 
     def at_object_delete(self):
@@ -114,10 +119,10 @@ class InsultNPC(NPC):
 
     def insult(self):
         """ Roll to see if the NPC should say an insult, then say it if so. """
-        if random() < self.insult_chance:
+        if random.random() < self.insult_chance:
             pcs = [obj for obj in self.location.contents if inherits_from(obj, Character)]
             if pcs:
-                target = choice(pcs)
+                target = random.choice(pcs)
                 self._say_insult(target)
 
 
@@ -203,37 +208,11 @@ class TalkativeNPC(NPC):
             self.menudata,
             startnode=startnode,
             session=session,
+            cmd_on_exit=None,
+            auto_quit=False,
             npc=self,
             **menu_kwargs
         )
-
-
-def node_start(caller, raw_string, **kwargs):
-    """
-    This is the intended start menu node for the Talkative NPC interface. It will
-    use on-npc Attributes to build its message and will also pick its options
-    based on nodes named `node_start_*` are available in the node tree.
-
-    """
-    # we presume a back-reference to the npc this is added when the menu is created
-    npc = kwargs["npc"]
-
-    # grab a (possibly random) welcome text
-    text = choice(make_iter(npc.hi_text))
-
-    # determine options based on `node_start_*` nodes available
-    toplevel_node_keys = [
-        node_key for node_key in caller.ndb._evmenu._menutree if node_key.startswith("node_start_")
-    ]
-    options = []
-    for node_key in toplevel_node_keys:
-        option_name = node_key[11:].replace("_", " ").capitalized()
-
-        # we let the menu number the choices, so we don't use key here
-        options.append({"desc": option_name, "goto": node_key})
-
-    return text, options
-
 
 class QuestGiver(TalkativeNPC):
     """
@@ -248,13 +227,6 @@ class ShopKeeper(TalkativeNPC):
 
     """
 
-    # how much extra the shopkeeper adds on top of the item cost
-    upsell_factor = AttributeProperty(1.0, autocreate=False)
-    # how much of the raw cost the shopkeep is willing to pay when buying from character
-    miser_factor = AttributeProperty(0.5, autocreate=False)
-    # prototypes of common wares
-    common_ware_prototypes = AttributeProperty([], autocreate=False)
-
     def at_damage(self, _damage, attacker=None):
         """
         Immortal - we don't deduct any damage here.
@@ -266,3 +238,13 @@ class ShopKeeper(TalkativeNPC):
         )
         if self.combat:
             self.combat.end_combat()
+
+    def clean_old_inventory(self):
+        """
+        delete items that were created over a day ago from shopkeeper's inventory to avoid
+            database buildup
+        """
+
+        for item in self.contents:
+            if time.time() - item.created_at > (60 * 60 * 24):
+                item.delete()

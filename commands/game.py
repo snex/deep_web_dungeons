@@ -121,12 +121,12 @@ class CmdInventory(Command):
         equipped_l = evtable.EvTable(border=None)
         equipped_l.add_row(
             "R.Hand: ",
-            eq.weapon.get_display_name() if eq.weapon else "None",
+            eq.weapon if eq.weapon else "None",
             f"|b{float(eq.weapon.size):0.2f}|n" if eq.weapon else "",
         )
         equipped_l.add_row(
             "Body: ",
-            eq.armor_item.get_display_name() if eq.armor_item else "None",
+            eq.armor_item if eq.armor_item else "None",
             f"|b{float(eq.armor_item.size):0.2f}|n" if eq.armor_item else "",
         )
         equipped_l.add_row(
@@ -139,9 +139,9 @@ class CmdInventory(Command):
         equipped_r = evtable.EvTable(border=None)
         l_hand = "None"
         if eq.weapon.inventory_use_slot == WieldLocation.TWO_HANDS:
-            l_hand = eq.weapon.get_display_name()
+            l_hand = eq.weapon
         if eq.shield:
-            l_hand = eq.shield.get_display_name()
+            l_hand = eq.shield
 
         equipped_r.add_row(
             "L.Hand: ",
@@ -150,7 +150,7 @@ class CmdInventory(Command):
         )
         equipped_r.add_row(
             "Helmet: ",
-            eq.helmet.get_display_name() if eq.helmet else "None",
+            eq.helmet if eq.helmet else "None",
             f"|b{float(eq.helmet.size):0.2f}|n" if eq.helmet else "",
         )
         equipped_r.add_row(
@@ -307,7 +307,7 @@ class CmdWieldOrWear(Command):
         current = self.caller.equipment.slots[use_slot]
 
         if current == item:
-            self.caller.msg(f"You are already using {item.get_display_name()}.")
+            self.caller.msg(f"You are already using {item}.")
             return
 
         # move it to the right slot based on the type of object
@@ -315,8 +315,8 @@ class CmdWieldOrWear(Command):
 
         # inform the user of the change (and potential swap)
         if current:
-            self.caller.msg(f"Returning {current.get_display_name()} to the backpack.")
-        self.caller.msg(self.out_txts[use_slot].format(key=item.get_display_name()))
+            self.caller.msg(f"Returning {current} to the backpack.")
+        self.caller.msg(self.out_txts[use_slot].format(key=item))
 
 
 class CmdRemove(Command):
@@ -357,7 +357,7 @@ class CmdRemove(Command):
 
         caller.equipment.remove(item)
         caller.equipment.add(item)
-        caller.msg(f"You stash {item.get_display_name()} in your backpack.")
+        caller.msg(f"You stash {item} in your backpack.")
 
 class CmdTalk(Command):
     """
@@ -377,7 +377,7 @@ class CmdTalk(Command):
 
         if not inherits_from(target, TalkativeNPC) and not inherits_from(target, InsultNPC):
             self.caller.msg(
-                f"{target.get_display_name(looker=self.caller)} does not seem very talkative."
+                f"{target} does not seem very talkative."
             )
             return
         target.at_talk(self.caller)

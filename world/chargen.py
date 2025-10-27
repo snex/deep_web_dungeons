@@ -364,6 +364,7 @@ def start_chargen(caller, session=None):
         menu_tree,
         startnode="node_set_name",
         session=session,
+        auto_quit=False,
         startnode_input=("", {"tmp_character": tmp_character}),
     )
 

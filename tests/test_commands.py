@@ -239,6 +239,8 @@ ______________________________________________________________________________
             {"foo": None, "bar": None},
             startnode="node_start",
             session=None,
+            cmd_on_exit=None,
+            auto_quit=False,
             npc=npc,
         )
 

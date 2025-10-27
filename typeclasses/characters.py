@@ -84,6 +84,9 @@ class Character(BaseCharacter):
     adelay = NAttributeProperty( default=0.0 ) # delay attacks until float time
     mdelay = NAttributeProperty( default=0.0 ) # delay movement until float time
 
+    # store item tracking
+    buyable_gear = NAttributeProperty(default={})
+
     appearance_template = """
 |c{name}{extra_name_info}|n
 
@@ -283,3 +286,17 @@ class Character(BaseCharacter):
             desc=self.get_display_desc(looker, **kwargs),
             things=self.equipment.display_loadout(),
         )
+
+    def clear_buyable_gear(self, vendors):
+        """
+        clear out the buyable_gear dict so that shops refresh their stock
+        called by VendorRestockScript every hour
+        """
+        if getattr(self.ndb, "_evmenu"):
+            if getattr(self.ndb._evmenu, "npc"):
+                if self.ndb._evmenu.npc not in vendors:
+                    self.buyable_gear = {}
+            else:
+                self.buyable_gear = {}
+        else:
+            self.buyable_gear = {}
