@@ -375,7 +375,7 @@ class CmdTalk(Command):
         if not target:
             return
 
-        if not inherits_from(target, TalkativeNPC) and not inherits_from(target, InsultNPC):
+        if not inherits_from(target, TalkativeNPC) and not inherits_from(target, ShoutNPC):
             self.caller.msg(
                 f"{target} does not seem very talkative."
             )

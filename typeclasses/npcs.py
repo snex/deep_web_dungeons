@@ -105,7 +105,6 @@ class ShoutNPC(NPC):
 
     def _do_shout(self, target):
         shout = getattr(self.shout_cls(target), self.shout_method)()
-        #insult = Insult(target.key, target.gender).generate_insult()
         self.execute_cmd(f"say |w{shout}|n")
         self._do_wander(CardinalDirections)
 
