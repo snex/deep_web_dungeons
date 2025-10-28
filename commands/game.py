@@ -11,7 +11,7 @@ from evennia.commands.cmdhandler import InterruptCommand
 from evennia.utils import evform, evtable
 from evennia.utils.utils import inherits_from
 
-from typeclasses.npcs import TalkativeNPC, InsultNPC
+from typeclasses.npcs import TalkativeNPC, ShoutNPC
 from typeclasses.objects import QuantumLatticeObject
 
 from world.enums import WieldLocation
