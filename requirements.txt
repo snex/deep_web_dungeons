@@ -2,3 +2,4 @@
 evennia @ git+https://github.com/snex/evennia.git
 scipy
 tracery
+wonderwords

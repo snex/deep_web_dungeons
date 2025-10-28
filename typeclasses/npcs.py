@@ -8,6 +8,7 @@ import time
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.evmenu import EvMenu
 from evennia.utils.utils import inherits_from, repeat, unrepeat
+from world.common.dialog.ads import Advertisement
 from world.common.dialog.insults import Insult
 from world.enums import Allegiance, CardinalDirections
 from .characters import BaseCharacter, Character
@@ -74,37 +75,47 @@ class WanderingNPC(NPC):
         if random.random() < self.wander_chance:
             self._do_wander(CardinalDirections)
 
-class InsultNPC(NPC):
+class ShoutNPC(NPC):
     """
-    Insult NPCs will wander around and insult any players they see.
+    Shout NPCs wander around and shout some dialog at players.
+    They will also shout if talked to or attacked.
+    After shouting, they run off in a random direction.
+    Make subclasses to determine what kinds of shouting the NPC does.
     """
 
-    insult_timer = AttributeProperty(default=None, autocreate=False)
-    insult_rate = AttributeProperty(default=60, autocreate=False)
-    insult_chance = AttributeProperty(default=0.5, autocreate=False)
+    shout_timer = AttributeProperty(default=None, autocreate=False)
+    shout_rate = AttributeProperty(default=60, autocreate=False)
+    shout_chance = AttributeProperty(default=0.5, autocreate=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # set these in subclasses
+        self.shout_cls = None
+        self.shout_method = None
 
     def at_object_creation(self):
-        self.insult_rate = random.randrange(30, 120)
-        self.insult_chance = random.randrange(300, 700) / 1000
-        self.insult_timer = repeat(self.insult_rate, self.insult)
+        self.shout_rate = random.randrange(30, 120)
+        self.shout_chance = random.randrange(300, 700) / 1000
+        self.shout_timer = repeat(self.shout_rate, self.shout)
 
     def at_object_delete(self):
-        if self.insult_timer is not None:
-            unrepeat(self.insult_timer)
+        if self.shout_timer is not None:
+            unrepeat(self.shout_timer)
         return True
 
-    def _say_insult(self, target):
-        insult = Insult(target.key, target.gender).generate_insult()
-        self.execute_cmd(f"say |w{insult}|n")
+    def _do_shout(self, target):
+        shout = getattr(self.shout_cls(target), self.shout_method)()
+        #insult = Insult(target.key, target.gender).generate_insult()
+        self.execute_cmd(f"say |w{shout}|n")
         self._do_wander(CardinalDirections)
 
     def at_talk(self, talker):
-        """ When talked to, say an insult. """
-        self._say_insult(talker)
+        """ When talked to, do a shout. """
+        self._do_shout(talker)
 
     def at_damage(self, _damage, attacker=None):
         """
-        Insult NPCs are generally immortal and will insult and run if hit."
+        Shout NPCs are generally immortal and will insult and run if hit."
 
         """
 
@@ -115,15 +126,35 @@ class InsultNPC(NPC):
             from_obj=self,
             mapping={"attacker": attacker}
         )
-        self._say_insult(attacker)
+        self._do_shout(attacker)
 
-    def insult(self):
-        """ Roll to see if the NPC should say an insult, then say it if so. """
-        if random.random() < self.insult_chance:
+    def shout(self):
+        """ Roll to see if the NPC should perform a shout, then say it if so. """
+        if random.random() < self.shout_chance:
             pcs = [obj for obj in self.location.contents if inherits_from(obj, Character)]
             if pcs:
                 target = random.choice(pcs)
-                self._say_insult(target)
+                self._do_shout(target)
+
+class InsultNPC(ShoutNPC):
+    """
+    Insult NPCs will wander around and insult any players they see.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shout_cls = Insult
+        self.shout_method = "generate_insult"
+
+class AdNPC(ShoutNPC):
+    """
+    Ad NPCs will wander around and make fake ads to players they see.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shout_cls = Advertisement
+        self.shout_method = "generate_advertisement"
 
 
 class TalkativeNPC(NPC):

@@ -48,8 +48,8 @@ class TestWanderingNPC(EvenniaTest):
             self.wandering_npc.wander()
             mock_do_wander.assert_called_once_with(CardinalDirections)
 
-class TestInsultNPC(EvenniaTest):
-    """ test InsultNPC behavior """
+class TestShoutNPC(EvenniaTest):
+    """ test ShoutNPC behavior """
     def setUp(self):
         super().setUp()
         self.insult_npc = create_object(
@@ -68,28 +68,28 @@ class TestInsultNPC(EvenniaTest):
                 InsultNPC,
                 key="insult"
             )
-            mock_repeat.assert_called_once_with(66, npc.insult)
-        self.assertEqual(npc.insult_rate, 66)
-        self.assertEqual(npc.insult_chance, 0.25)
+            mock_repeat.assert_called_once_with(66, npc.shout)
+        self.assertEqual(npc.shout_rate, 66)
+        self.assertEqual(npc.shout_chance, 0.25)
 
     def test_deletion(self):
         """ test that deleting npc disables their timer """
-        timer = self.insult_npc.insult_timer
+        timer = self.insult_npc.shout_timer
         with patch("typeclasses.npcs.unrepeat") as mock_unrepeat:
             self.insult_npc.delete()
             mock_unrepeat.assert_called_once_with(timer)
 
     def test_at_talk(self):
-        """ test insult NPC being talked to """
-        with patch("typeclasses.npcs.InsultNPC._say_insult") as mock_say_insult:
+        """ test shout NPC being talked to """
+        with patch("typeclasses.npcs.InsultNPC._do_shout") as mock_do_shout:
             self.insult_npc.at_talk(self.char1)
-            mock_say_insult.assert_called_once_with(self.char1)
+            mock_do_shout.assert_called_once_with(self.char1)
 
     def test_at_damage(self):
-        """ test insult NPC being immune to damage """
-        with patch("typeclasses.npcs.InsultNPC._say_insult") as mock_say_insult:
+        """ test shout NPC being immune to damage """
+        with patch("typeclasses.npcs.InsultNPC._do_shout") as mock_do_shout:
             self.insult_npc.at_damage(10, self.char1)
-            mock_say_insult.assert_called_once_with(self.char1)
+            mock_do_shout.assert_called_once_with(self.char1)
         with patch("typeclasses.rooms.Room.msg_contents") as mock_msg:
             self.insult_npc.at_damage(10, self.char1)
             mock_msg.assert_any_call(
@@ -100,10 +100,10 @@ class TestInsultNPC(EvenniaTest):
 
     @patch("random.choice")
     @patch("random.random")
-    def test_insult(self, mock_random, mock_choice):
-        """ test insult """
+    def test_shout(self, mock_random, mock_choice):
+        """ test shout """
         mock_random.return_value = 0.01
         mock_choice.return_value = self.char2
-        with patch("typeclasses.npcs.InsultNPC._say_insult") as mock_say_insult:
-            self.insult_npc.insult()
-            mock_say_insult.assert_called_once_with(self.char2)
+        with patch("typeclasses.npcs.InsultNPC._do_shout") as mock_do_shout:
+            self.insult_npc.shout()
+            mock_do_shout.assert_called_once_with(self.char2)

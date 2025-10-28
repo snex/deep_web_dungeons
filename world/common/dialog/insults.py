@@ -10,9 +10,8 @@ from .dialog_base import DialogBase
 # pylint: disable=too-few-public-methods
 class Insult(DialogBase):
     """ Class for generating insults using tracery. """
-    def __init__(self, target, gender='none'):
+    def __init__(self, target):
         self.target = target
-        self.gender = gender
         self.rules = {
             "unsourced_start": self._load_file("unsourced_starts"),
             "sourced_start": self._load_file("sourced_starts"),
@@ -36,12 +35,12 @@ class Insult(DialogBase):
                 "#definite_bad_guy#",
                 "#indefinite_bad_guy.a#",
             ],
-            "friendly_verb": self._load_file("friendly_verbs", self.gender, "sub"),
+            "friendly_verb": self._load_file("friendly_verbs", self.target.gender, "sub"),
 
             "bad_thing": self._load_file("bad_things"),
 
             "indefinite_victim": self._load_file("indefinite_victims"),
-            "definite_victim": self._load_file("definite_victims", self.gender, "pos"),
+            "definite_victim": self._load_file("definite_victims", self.target.gender, "pos"),
 
             "victim": [
                 "#definite_victim#",
@@ -92,7 +91,7 @@ class Insult(DialogBase):
                 "borrowed #victim_collection.pos# #object_phys.s# and never gave them back"
             ],
 
-            "celebratory_verb": self._load_file("celebratory_verbs", self.gender, "sub"),
+            "celebratory_verb": self._load_file("celebratory_verbs", self.target.gender, "sub"),
             "bad_event": self._load_file("bad_events"),
 
             "artwork": self._load_file("stories"),
