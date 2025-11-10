@@ -11,6 +11,7 @@ from world import chargen
 from world.characters.classes import CHARACTER_CLASSES
 from world.characters.races import RACES
 
+
 class CharacterGenerationTest(EvenniaTest):
     """
     Test the Character generator in the rule engine.
@@ -29,43 +30,46 @@ class CharacterGenerationTest(EvenniaTest):
     def tearDown(self):
         self.randint_patcher.stop()
         self.choice_patcher.stop()
+        super().tearDown()
 
     def test_random_name(self):
-        """ test that we can get a random name """
+        """test that we can get a random name"""
         self.assertEqual(self.chargen.random_name(), "Adelaide")
 
     def test_random_gender(self):
-        """ test that we can get a random gender """
+        """test that we can get a random gender"""
         self.mock_choice.return_value = "female"
         self.assertEqual(self.chargen.random_gender(), "female")
 
     def test_random_race(self):
-        """ test that we can get a random race """
+        """test that we can get a random race"""
         self.mock_choice.return_value = RACES["furry"]
         self.assertEqual(self.chargen.random_race(), RACES["furry"])
 
     def test_random_cclass(self):
-        """ test that we can get a random character class """
+        """test that we can get a random character class"""
         self.mock_choice.return_value = CHARACTER_CLASSES["min_maxer"]
         self.assertEqual(self.chargen.random_cclass(), CHARACTER_CLASSES["min_maxer"])
 
     def test_random_appearance_attribute(self):
-        """ test that we can get a random physical_appearance attribute """
+        """test that we can get a random physical_appearance attribute"""
         self.assertEqual(self.chargen.random_appearance_attribute("physique"), "brawny")
         self.assertEqual(self.chargen.random_appearance_attribute("face"), "blunt")
-        self.assertEqual(self.chargen.random_appearance_attribute("skin"), "birthmarked")
+        self.assertEqual(
+            self.chargen.random_appearance_attribute("skin"), "birthmarked"
+        )
         self.assertEqual(self.chargen.random_appearance_attribute("hair"), "braided")
         self.assertEqual(self.chargen.random_appearance_attribute("clothing"), "bloody")
         self.assertEqual(self.chargen.random_appearance_attribute("speech"), "booming")
 
     def test_random_appearance(self):
-        """ test that we can randomize the character's physical_appearance """
+        """test that we can randomize the character's physical_appearance"""
         self.chargen.random_appearance()
         self.assertEqual(
             self.chargen.physical_appearance,
             " is a genderless raceless, brawny with a blunt face,"
             " birthmarked skin, braided hair, booming speech and"
-            " bloody clothing."
+            " bloody clothing.",
         )
 
     def test_apply_ability_bonus(self):
@@ -77,11 +81,13 @@ class CharacterGenerationTest(EvenniaTest):
         self.assertEqual(self.chargen.ability_bonus_stack, [("strength", 10)])
         self.assertEqual(self.chargen.strength, 10)
         self.chargen.apply_ability_bonus("strength", 5)
-        self.assertEqual(self.chargen.ability_bonus_stack, [("strength", 10), ("strength", 5)])
+        self.assertEqual(
+            self.chargen.ability_bonus_stack, [("strength", 10), ("strength", 5)]
+        )
         self.assertEqual(self.chargen.strength, 15)
 
     def test_revert_ability_bonuses(self):
-        """ test that we can revert ability bonuses applied by a race when we remove that race """
+        """test that we can revert ability bonuses applied by a race when we remove that race"""
         self.chargen.apply_ability_bonus("strength", 10)
         self.chargen.apply_ability_bonus("strength", 5)
         self.chargen.revert_ability_bonuses()
@@ -89,7 +95,7 @@ class CharacterGenerationTest(EvenniaTest):
         self.assertEqual(self.chargen.strength, 0)
 
     def test_apply_race(self):
-        """ test applying a race to the TemporaryCharacterSheet """
+        """test applying a race to the TemporaryCharacterSheet"""
         self.chargen.apply_race(RACES["furry"])
         self.assertEqual(self.chargen.race, RACES["furry"])
         self.assertEqual(self.chargen.strength, -1)
@@ -109,7 +115,7 @@ class CharacterGenerationTest(EvenniaTest):
         self.assertEqual(self.chargen.will, 0)
 
     def test_apply_cclass(self):
-        """ test applying a character class to the TemporaryCharacterSheet """
+        """test applying a character class to the TemporaryCharacterSheet"""
         self.chargen.apply_cclass(CHARACTER_CLASSES["antifa_rioter"])
         self.assertEqual(self.chargen.cclass, CHARACTER_CLASSES["antifa_rioter"])
         self.assertEqual(self.chargen.hp_max, 20)
@@ -162,23 +168,22 @@ class CharacterGenerationTest(EvenniaTest):
         self.assertEqual(self.chargen.armor_desc, None)
 
     def test_apply_appearance_attribute(self):
-        """ test applying a single appearance attribute to the TemporaryCharacterSheet """
+        """test applying a single appearance attribute to the TemporaryCharacterSheet"""
         self.chargen.apply_appearance_attribute("physique", "gross")
         self.assertEqual(self.chargen.physique, "gross")
 
-
     def test_apply_appearance(self):
-        """ test applying the appearance to the TemporaryCharacterSheet """
+        """test applying the appearance to the TemporaryCharacterSheet"""
         self.chargen.apply_appearance()
         self.assertEqual(
             self.chargen.physical_appearance,
             " is a genderless raceless, brawny with a blunt face,"
             " birthmarked skin, braided hair, booming speech and"
-            " bloody clothing."
+            " bloody clothing.",
         )
 
     def test_show_sheet(self):
-        """ test showing the temporary character sheet """
+        """test showing the temporary character sheet"""
         self.chargen.name = "some name"
         self.chargen.gender = "female"
         self.chargen.apply_race(RACES["furry"])
@@ -194,7 +199,7 @@ CUN +2
 WIL -1
 
 some name is a female Furry, brawny with a blunt face, birthmarked skin, braided hair,"""
-""" booming speech and bloody clothing.
+            """ booming speech and bloody clothing.
 
 Your belongings:
 
@@ -204,11 +209,12 @@ Armor:    |xplasteel chest plate|n
 Helmet:   |xplasteel hockey mask|n
 Backpack: ration, ration, ration
 
-"""
+""",
         )
 
     def test_apply(self):
-        """ test that apply creates a new character """
+        """test that apply creates a new character"""
+        orig_char_classes = CHARACTER_CLASSES.copy()
         self.chargen.name = "some name"
         self.chargen.gender = "female"
         self.chargen.apply_race(RACES["furry"])
@@ -232,5 +238,7 @@ Backpack: ration, ration, ration
         self.assertEqual(
             new_char.physical_appearance,
             "some name is a female Furry, brawny with a blunt face, birthmarked skin, braided hair,"
-            " booming speech and bloody clothing."
+            " booming speech and bloody clothing.",
         )
+        # test weird bug that caused the CHARACTER_CLASSES dict to change
+        self.assertEqual(CHARACTER_CLASSES, orig_char_classes)
